@@ -172,6 +172,43 @@ INDICATOR_INFO = {
         "source_label": "Investopedia — Relative Strength Index",
         "caveat": "강한 추세장에서는 RSI가 70 이상이나 30 이하에 오래 머물 수 있어요. RSI만 보고 매매하는 건 위험해요.",
     },
+    "hy_spread": {
+        "title": "HY 회사채 스프레드 (신용 위험)",
+        "description": "투자등급 미만 회사채(정크본드)와 미국채의 금리 차이예요. 회사채 디폴트 위험을 가격으로 반영해서, 신용 위기 가능성을 측정해요. ICE BofA US High Yield Index Option-Adjusted Spread (FRED 코드 BAMLH0A0HYM2) 기준이에요. 10Y-3M 금리차(12~24개월 전 침체 신호)보다 더 빠른 3~6개월 전 신호로 작동해요.",
+        "thresholds": [
+            ("< 3%",  "신용 위험 낮음 (시장 안정)", "good"),
+            ("3~5%",  "정상 범위", "neutral"),
+            ("5~7%",  "신용 스트레스 증가", "warn"),
+            ("> 7%",  "신용 위기 (디폴트 위험 급등)", "bad"),
+        ],
+        "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
+        "source_label": "FRED — ICE BofA US HY OAS",
+        "caveat": "역사상 5% 이상 = 시장 우려, 7%+ = 침체/위기 (2008년 21.8%, 2020년 3월 11%까지 급등). S&P500과 강한 역상관 관계.",
+    },
+    "ma_cross": {
+        "title": "S&P500 추세 강도 (50/200일선)",
+        "description": "SPY의 50일선과 200일선의 위치 관계로 추세의 강도를 판정해요. 50일선이 200일선을 돌파해 위로 가면 '골든 크로스'(강세), 아래로 내려가면 '데드 크로스'(약세)예요. 가격까지 함께 봐서 4단계로 분류해요.",
+        "thresholds": [
+            ("가격 > 50선 > 200선", "강한 상승추세 (모든 신호 강세)", "good"),
+            ("가격 > 200선, 50선 위", "상승추세 (단기 조정 가능)", "neutral"),
+            ("가격 < 50선 또는 전환 중", "약세 신호 (전환 진행)", "warn"),
+            ("가격 < 50선 < 200선", "강한 하락추세 (모든 신호 약세)", "bad"),
+        ],
+        "source_url": "https://finance.yahoo.com/quote/SPY/chart",
+        "source_label": "Yahoo Finance — SPY 차트",
+        "caveat": "200일선과 같이 후행 지표예요. 추세 전환의 확정 신호로 좋지만, 전환 직후엔 진입이 늦을 수 있어요.",
+    },
+    "dxy_trend": {
+        "title": "달러 트렌드 (DXY MA200)",
+        "description": "달러 지수(DXY)가 200일 이동평균보다 위인지 아래인지로 'risk-on/risk-off' 환경을 판정해요. 약달러(MA200 아래)는 신흥국·원자재·주식에 우호적이고, 강달러(MA200 위)는 글로벌 유동성 긴축 신호예요.",
+        "thresholds": [
+            ("DXY < MA200", "달러 약세 (위험자산 우호)", "good"),
+            ("DXY > MA200", "달러 강세 (위험자산 역풍)", "warn"),
+        ],
+        "source_url": "https://finance.yahoo.com/quote/DX-Y.NYB",
+        "source_label": "Yahoo Finance — DX-Y.NYB",
+        "caveat": "달러 절대값(100 기준)과 함께 보면 더 정확해요. 강달러 + 상승추세 = 매우 강한 위험자산 역풍.",
+    },
     "52w": {
         "title": "52주 고저 위치",
         "description": "지난 1년 최저가(0%)와 최고가(100%) 사이에서 현재가의 위치를 보여줘요. 저점 근처면 싸게 살 가능성, 고점 근처면 추격 매수 위험을 나타내요.",
@@ -251,22 +288,44 @@ def signal_color(label, value):
         if value <= 22: return "neutral", "적정 수준"
         if value <= 28: return "warn",    "다소 고평가"
         return "bad", "고평가"
+    if label == "hy_spread":
+        # HY Credit Spread (BAMLH0A0HYM2). 단위: 퍼센트 포인트
+        if value < 3:    return "good",    "신용 위험 낮음 (시장 안정)"
+        if value <= 5:   return "neutral", "정상 범위"
+        if value <= 7:   return "warn",    "신용 스트레스 증가"
+        return "bad", "신용 위기 (디폴트 위험 급등)"
+    if label == "ma_cross":
+        # ma_cross: "strong_bull" / "bull" / "bear" / "strong_bear"
+        if value == "strong_bull":  return "good",    "강한 상승추세 (50선·200선 모두 위)"
+        if value == "bull":         return "neutral", "상승추세 (단기 조정 가능)"
+        if value == "bear":         return "warn",    "약세 신호 (전환 진행)"
+        if value == "strong_bear":  return "bad",     "강한 하락추세 (50선·200선 모두 아래)"
+        return "neutral", "데이터 없음"
+    if label == "dxy_trend":  # bool
+        if value is True:   return "warn", "달러 강세 (위험자산 역풍)"
+        if value is False:  return "good", "달러 약세 (위험자산 우호)"
+        return "neutral", "데이터 없음"
     return "neutral", ""
 
 
 def overall_signal(keys):
+    # 7개 컴포넌트 기준: 점수 범위 -14 ~ +7
     score = sum(SCORE_MAP.get(k, 0) for k in keys)
-    if score >= 2:
+    # 7개로 확장됨에 따라 임계값 재조정 (이전 4개: ≥+2/≥0/≥-3/<-3 → 7개: ≥+4/≥0/≥-5/<-5)
+    if score >= 4:
         return "good",    "매수 유리",        "전반적으로 긍정적인 신호예요. 장기 투자를 시작하기 좋은 환경이에요."
     if score >= 0:
         return "neutral", "중립 — 관망 추천", "긍정과 부정 신호가 섞여 있어요. 급하게 움직이지 않아도 돼요."
-    if score >= -3:
+    if score >= -5:
         return "warn",    "주의 — 신중하게",  "부정적 지표가 늘고 있어요. 분할 매수나 관망을 추천해요."
     return "bad", "위험 — 방어적으로", "전반적으로 위험 신호가 많아요. 현금 비중을 높이는 게 좋을 수 있어요."
 
 
 def overall_signal_from_data(data):
-    """4개 타이밍 지표 기반 종합 신호 계산. build_html과 format_kakao_summary 공용.
+    """7개 타이밍 지표 기반 종합 신호 계산. build_html과 format_kakao_summary 공용.
+
+    구성: 심리(F&G) · 변동성(VIX) · 경기(yield spread) · 시장 추세(MA200) ·
+          추세 강도(50/200 cross) · 신용(HY spread) · 통화(DXY 트렌드)
 
     Returns: {key, label, comment, good, warn, bad, neutral}
     """
@@ -278,8 +337,14 @@ def overall_signal_from_data(data):
     ys_val = ys.get("spread") if isinstance(ys, dict) else None
     ys_sig, _ = signal_color("yield_spread", ys_val)
     tr_sig, _ = signal_color("ma200", data.get("sp500_trend"))
+    # 신규 3개
+    mc_sig, _ = signal_color("ma_cross", data.get("sp500_ma_cross"))
+    hy_sig, _ = signal_color("hy_spread", data.get("hy_spread"))
+    dxy_data = data.get("dxy") or {}
+    dxy_above_ma200 = dxy_data.get("above_ma200") if isinstance(dxy_data, dict) else None
+    dxt_sig, _ = signal_color("dxy_trend", dxy_above_ma200)
 
-    macro_keys = [fg_sig, vx_sig, ys_sig, tr_sig]
+    macro_keys = [fg_sig, vx_sig, ys_sig, tr_sig, mc_sig, hy_sig, dxt_sig]
     ov_key, ov_label, ov_comment = overall_signal(macro_keys)
     return {
         "key": ov_key,
@@ -414,10 +479,21 @@ def fetch_vix():
 
 
 def fetch_dxy():
+    """DXY 현재값 + 200일선 추세. 약달러(< MA200) = risk-on / 강달러(> MA200) = risk-off."""
     try:
         with _yf_lock:
-            df = yf.download("DX-Y.NYB", period="5d", progress=False, auto_adjust=True, threads=False)
-        return round(float(df["Close"].squeeze().iloc[-1]), 2) if not df.empty else None
+            df = yf.download("DX-Y.NYB", period="1y", interval="1d",
+                             progress=False, auto_adjust=True, threads=False)
+        if df.empty:
+            return None
+        close = df["Close"].squeeze()
+        price = round(float(close.iloc[-1]), 2)
+        result = {"value": price, "above_ma200": None}
+        if len(close) >= 200:
+            ma200 = float(close.rolling(200).mean().iloc[-1])
+            result["above_ma200"] = price > ma200
+            result["ma200_diff_pct"] = round((price - ma200) / ma200 * 100, 1)
+        return result
     except Exception as e:
         print(f"  ⚠️  DXY 실패: {e}")
         return None
@@ -430,6 +506,33 @@ def fetch_usdkrw():
         return round(float(df["Close"].squeeze().iloc[-1]), 1) if not df.empty else None
     except Exception as e:
         print(f"  ⚠️  원달러 환율 실패: {e}")
+        return None
+
+
+def fetch_hy_spread():
+    """ICE BofA US High Yield Index Option-Adjusted Spread (FRED BAMLH0A0HYM2).
+
+    회사채 디폴트 위험 측정. yield curve(12~24개월 전 신호)보다 빠른 3~6개월 전 신호.
+    < 3%: 신용 위험 낮음(좋음), 3~5%: 정상, 5~7%: 스트레스 증가, > 7%: 위기.
+    """
+    try:
+        # FRED 공개 CSV API — 인증 키 불필요
+        r = requests.get(
+            "https://fred.stlouisfed.org/graph/fredgraph.csv?id=BAMLH0A0HYM2",
+            timeout=10,
+        )
+        r.raise_for_status()
+        # 마지막 비어있지 않은 데이터 줄 찾기 (FRED는 최근 영업일 데이터까지)
+        for line in reversed(r.text.strip().split("\n")):
+            parts = line.split(",")
+            if len(parts) == 2 and parts[1] not in ("", ".", "value"):
+                try:
+                    return round(float(parts[1]), 2)
+                except ValueError:
+                    continue
+        return None
+    except Exception as e:
+        print(f"  ⚠️  HY Spread 실패: {e}")
         return None
 
 
@@ -469,10 +572,27 @@ def analyze_ticker(ticker, name):
         # MA200 — 데이터가 200일 미만이면 None
         ma200_above = None
         ma200_diff  = None
+        ma200_val = None
         if len(close) >= 200:
-            ma200 = float(close.rolling(200).mean().iloc[-1])
-            ma200_above = price > ma200
-            ma200_diff  = round((price - ma200) / ma200 * 100, 1)
+            ma200_val = float(close.rolling(200).mean().iloc[-1])
+            ma200_above = price > ma200_val
+            ma200_diff  = round((price - ma200_val) / ma200_val * 100, 1)
+
+        # MA50 + Golden Cross (50일선이 200일선 위/아래)
+        ma_cross = None  # "strong_bull" / "bull" / "bear" / "strong_bear"
+        if len(close) >= 200:
+            ma50_val = float(close.rolling(50).mean().iloc[-1])
+            above_50 = price > ma50_val
+            above_200 = price > ma200_val
+            cross_up = ma50_val > ma200_val  # Golden cross 상태
+            if above_50 and above_200 and cross_up:
+                ma_cross = "strong_bull"   # 모든 신호 강세
+            elif above_200 and cross_up:
+                ma_cross = "bull"           # 장기 강세, 단기 약간 조정
+            elif not above_50 and not above_200 and not cross_up:
+                ma_cross = "strong_bear"   # 모든 신호 약세
+            else:
+                ma_cross = "bear"           # 약세 또는 전환 중
 
         # 52주 위치
         high = float(close.max())
@@ -486,6 +606,7 @@ def analyze_ticker(ticker, name):
             "name": name, "ticker": ticker, "price_str": price_str,
             "change_pct": round(change_pct, 2), "rsi": round(rsi, 1),
             "ma200_above": ma200_above, "ma200_diff_pct": ma200_diff,
+            "ma_cross": ma_cross,
             "pos_52w": round(pos_52w, 1),
         }
     except Exception as e:
@@ -493,7 +614,8 @@ def analyze_ticker(ticker, name):
         return {
             "name": name, "ticker": ticker, "price_str": "N/A",
             "change_pct": None, "rsi": None,
-            "ma200_above": None, "ma200_diff_pct": None, "pos_52w": None,
+            "ma200_above": None, "ma200_diff_pct": None, "ma_cross": None,
+            "pos_52w": None,
         }
 
 
@@ -671,7 +793,12 @@ def build_html(data, serve_mode=True):
     pe_sig,  pe_txt  = signal_color("sp500pe",       data["sp500pe"])
     bu_sig,  bu_txt  = signal_color("buffett",       data["buffett"])
     vx_sig,  vx_txt  = signal_color("vix",           data["vix"])
-    dx_sig,  dx_txt  = signal_color("dxy",           data["dxy"])
+    dxy_data = data.get("dxy") or {}
+    dxy_val = dxy_data.get("value") if isinstance(dxy_data, dict) else None
+    dxy_above_ma200 = dxy_data.get("above_ma200") if isinstance(dxy_data, dict) else None
+    dxy_diff_pct = dxy_data.get("ma200_diff_pct") if isinstance(dxy_data, dict) else None
+    dx_sig,  dx_txt  = signal_color("dxy",           dxy_val)
+    dxt_sig, dxt_txt = signal_color("dxy_trend",     dxy_above_ma200)
     kr_sig,  kr_txt  = signal_color("usdkrw",        data["usdkrw"])
     ys       = data["yield_spread"]
     ys_val   = ys["spread"] if ys else None
@@ -711,7 +838,7 @@ def build_html(data, serve_mode=True):
         "앞으로 주가가 얼마나 흔들릴지 예측해요. 20 이상이면 불안한 시장, 30~40이면 역발투자 기회 구간이에요.")
 
     dxy_card = _macro_card("dxy", "💵", "달러 강세 지수", "US Dollar Index (DXY)",
-        f"{data['dxy']}" if data["dxy"] else "N/A", dx_sig, dx_txt,
+        f"{dxy_val}" if dxy_val else "N/A", dx_sig, dx_txt,
         "달러가 강하면 한국 주식·금·원유에 부담이 돼요. 100이 기준선이에요.")
 
     kr_val = f"₩{data['usdkrw']:,.0f}" if data["usdkrw"] else "N/A"
@@ -786,15 +913,62 @@ def build_html(data, serve_mode=True):
         current_value=tr_current,
     )
 
+    # HY Credit Spread 카드 (신규 — 신용 위험 지표)
+    hy_val = data.get("hy_spread")
+    hy_sig, hy_txt = signal_color("hy_spread", hy_val)
+    hy_val_html = f"{hy_val}%p" if hy_val is not None else "N/A"
+    hy_card = _macro_card(
+        "hy_spread", "🏦", "HY 회사채 스프레드", "ICE BofA US HY OAS",
+        hy_val_html, hy_sig, hy_txt,
+        "회사채 디폴트 위험을 가격으로 측정해요. 3% 미만은 시장 안정, 7%+ 는 신용 위기 신호예요.",
+    )
+
+    # MA50/200 Golden Cross 카드 (신규 — 추세 강도)
+    mc_val = data.get("sp500_ma_cross")
+    mc_sig, mc_txt = signal_color("ma_cross", mc_val)
+    mc_display = {
+        "strong_bull": "강한 상승",
+        "bull":        "상승",
+        "bear":        "약세 전환",
+        "strong_bear": "강한 하락",
+        None:          "N/A",
+    }
+    mc_val_html = mc_display.get(mc_val, "N/A")
+    cross_card = _macro_card(
+        "ma_cross", "⚡", "추세 강도 (50/200)", "SPY 50/200-day MA cross",
+        mc_val_html, mc_sig, mc_txt,
+        "가격이 50일·200일 이동평균 둘 다 위면 강한 강세장, 둘 다 아래면 강한 약세장이에요.",
+    )
+
+    # DXY 트렌드 카드 (신규 — risk-on/off)
+    dxt_val_html = "MA200 위" if dxy_above_ma200 is True else "MA200 아래" if dxy_above_ma200 is False else "N/A"
+    dxt_detail = ""
+    dxt_current = f"{dxt_val_html} · {dxt_txt}"
+    if dxy_diff_pct is not None:
+        arrow = "↑" if dxy_diff_pct >= 0 else "↓"
+        dxt_detail = f'<div class="text-xs text-muted">MA200 대비 {arrow}{abs(dxy_diff_pct):.1f}%</div>'
+        dxt_current = f"{dxt_val_html} ({arrow}{abs(dxy_diff_pct):.1f}%) · {dxt_txt}"
+    dxy_trend_card = _macro_card(
+        "dxy_trend", "🌍", "달러 트렌드", "DXY vs 200-day MA",
+        dxt_val_html, dxt_sig, dxt_txt,
+        "달러가 200일선 아래면 위험자산(주식·신흥국·원자재)에 우호적이에요. 위면 글로벌 긴축 신호예요.",
+        dxt_detail,
+        current_value=dxt_current,
+    )
+
     # ── 지수 카드 ──
     idx_html = "\n".join(_index_card(t) for t in data["tickers"])
 
     # ── 가이드 ──
     guide_html = "\n".join([
-        _guide("🎯 타이밍 신호란?", "종합 신호를 구성하는 4개 지표 소개",
-            "이 대시보드의 종합 신호는 CNN 공포탐욕지수(심리), VIX(변동성), 금리차(경기), S&P500 MA200 추세(모멘텀) "
-            "4개 카테고리를 각 1개씩 사용해요. 학술 연구(AQR, IMF)에 따르면 CAPE 같은 밸류에이션 지표는 "
-            "단기 타이밍이 아닌 10~20년 장기 수익률 예측에 적합해서 종합 신호에서 제외했어요."),
+        _guide("🎯 타이밍 신호란?", "종합 신호를 구성하는 7개 지표 소개",
+            "이 대시보드의 종합 신호는 CNN Fear &amp; Greed(7-component composite)와 Goldman Sachs Bull/Bear Indicator(6-component) "
+            "방법론을 참고해 7개 지표로 구성했어요: "
+            "① 심리(CNN F&amp;G) ② 변동성(VIX) ③ 경기(10Y-3M 금리차) ④ 시장 추세(S&amp;P500 MA200) "
+            "⑤ 추세 강도(50/200 cross) ⑥ 신용(HY 회사채 스프레드) ⑦ 통화(DXY 트렌드). "
+            "각 지표를 매수/중립/주의/위험 4단계로 분류하고 합산해서 종합 신호를 만들어요. "
+            "학술 연구(AQR, IMF)에 따라 CAPE 같은 밸류에이션 지표는 10~20년 장기 예측에 적합해서 "
+            "종합 신호에서 제외하고 참고 지표로만 표시해요."),
         _guide("😨 공포 & 탐욕 지수", "투자자 심리를 0~100으로 표시",
             "0에 가까울수록 사람들이 무서워서 내다 팔고, 100에 가까우면 욕심을 부리며 사고 있는 상태예요. "
             "워렌 버핏은 '남들이 탐욕스러울 때 두려워하고, 두려울 때 탐욕스러워져라'라고 했어요. "
@@ -810,6 +984,18 @@ def build_html(data, serve_mode=True):
         _guide("📏 S&P500 추세 (MA200)", "지금 강세장인지 약세장인지",
             "S&P 500 ETF(SPY)가 200일 이동평균선보다 높으면 상승추세(강세장), 낮으면 하락추세(약세장)예요. "
             "단기 등락이 아닌 큰 흐름을 보여주는 지표로, CNN·OECD 등 주요 복합 지수가 공통으로 포함하는 '모멘텀' 카테고리예요."),
+        _guide("⚡ 추세 강도 (50/200 cross)", "추세가 얼마나 강하고 가속 중인지",
+            "200일선만 보면 강세장·약세장 이진 판단만 가능해요. 50일선까지 함께 보면 "
+            "강한 상승(가격>50선>200선) / 상승(50선 위·200선 아래 또는 그 반대) / 약세 / 강한 하락 4단계로 더 세밀하게 판정할 수 있어요. "
+            "50선이 200선을 위로 돌파하는 'Golden Cross'는 강한 상승 전환 신호로 유명해요."),
+        _guide("🏦 HY 회사채 스프레드", "신용 위기 조기 경보 (가장 빠른 침체 신호)",
+            "투자등급 미만 회사채(정크본드)와 미국채의 금리 차이예요. 회사들이 디폴트 위험을 시장에서 어떻게 평가하는지 보여줘요. "
+            "10Y-3M 금리차가 12~24개월 전 침체 신호라면, HY 스프레드는 3~6개월 전 신호로 더 빠르고 정확해요. "
+            "역사상 2008년 21.8%, 2020년 3월 11%까지 급등했어요. S&P500과 강한 역상관 관계예요."),
+        _guide("🌍 달러 트렌드 (DXY MA200)", "위험자산 환경 판정",
+            "달러 지수(DXY)가 200일선 아래면 약달러 추세 = 위험자산(주식·신흥국·원자재) 우호적 환경이에요. "
+            "위면 강달러 = 글로벌 유동성 긴축 신호로, 미국 외 주식·금·원자재에 역풍이에요. "
+            "달러 절대값이 아닌 추세 방향이 중요해요."),
         _guide("📊 CAPE (Shiller PE)", "주식이 역사적으로 비싼지 확인 (장기 맥락용)",
             "10년 평균 이익 기준으로 주가 수준을 봐요. 역사 평균이 약 17이에요. "
             "38을 넘으면 역사적으로 매우 비싼 수준이에요. 단, 현대 시장은 저금리 시대를 거쳐 구조적으로 높아졌어요. "
@@ -877,7 +1063,7 @@ def build_html(data, serve_mode=True):
         <div class="w-6 h-6 rounded-full" style="background:{ov_dot}; box-shadow:0 0 14px {ov_dot}99"></div>
       </div>
       <div class="flex-1 min-w-0">
-        <div class="text-xs text-muted uppercase tracking-widest mb-1">종합 투자 신호 (4개 타이밍 지표 기반)</div>
+        <div class="text-xs text-muted uppercase tracking-widest mb-1">종합 투자 신호 (7개 타이밍 지표 기반)</div>
         <div class="text-xl font-bold {ov_c['text']}">{ov_label}</div>
         <div class="text-sm text-muted mt-1 leading-relaxed">{ov_comment}</div>
       </div>
@@ -890,13 +1076,16 @@ def build_html(data, serve_mode=True):
     </div>
   </div>
 
-  <!-- 타이밍 신호 (종합 신호 구성 지표) -->
-  <h2 class="text-xs font-semibold text-muted uppercase tracking-widest mb-3"><span aria-hidden="true">🎯</span> 타이밍 신호 <span class="normal-case font-normal opacity-60">(종합 신호 구성 4개 지표)</span></h2>
+  <!-- 타이밍 신호 (종합 신호 구성 7개 지표) -->
+  <h2 class="text-xs font-semibold text-muted uppercase tracking-widest mb-3"><span aria-hidden="true">🎯</span> 타이밍 신호 <span class="normal-case font-normal opacity-60">(종합 신호 구성 7개 지표 — CNN F&amp;G·Goldman 모델 참고)</span></h2>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     {fear_card}
     {vix_card}
     {ys_html}
     {trend_card}
+    {hy_card}
+    {cross_card}
+    {dxy_trend_card}
   </div>
 
   <!-- 밸류에이션 & 참고 지표 -->
@@ -1095,9 +1284,10 @@ def collect_data():
         ("sp500pe",      "S&P500 PER",     fetch_sp500_pe),
         ("buffett",      "버핏 지수",       fetch_buffett_indicator),
         ("vix",          "VIX",            fetch_vix),
-        ("dxy",          "DXY",            fetch_dxy),
+        ("dxy",          "DXY (+추세)",     fetch_dxy),
         ("usdkrw",       "원달러 환율",     fetch_usdkrw),
         ("yield_spread", "금리차",          fetch_yield_spread),
+        ("hy_spread",    "HY 회사채 스프레드", fetch_hy_spread),
     ]
 
     macro_data = {}
@@ -1127,6 +1317,7 @@ def collect_data():
         "tickers": tickers,
         "sp500_trend": spy_data["ma200_above"] if spy_data else None,
         "sp500_trend_pct": spy_data["ma200_diff_pct"] if spy_data else None,
+        "sp500_ma_cross": spy_data.get("ma_cross") if spy_data else None,
     }
 
 
