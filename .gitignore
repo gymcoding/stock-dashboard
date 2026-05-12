@@ -1,0 +1,28 @@
+# Secrets & local config
+.env
+.env.local
+kakao_token.json
+
+# Build artifacts
+_site/
+dashboard.html
+index.html
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# 개인 메모 / Claude Code 설정 (public repo 노출 방지)
+.claude/
+CLAUDE.md
+TODO.md
