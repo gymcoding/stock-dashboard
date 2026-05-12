@@ -524,10 +524,17 @@ def _badge(sig):
             f'rounded-full px-2.5 py-0.5 text-xs font-bold">{_KR.get(sig, "중립")}</span>')
 
 
-def _macro_card(key, emoji, title, en, val_html, sig, sig_txt, hint, detail_html=""):
+def _macro_card(key, emoji, title, en, val_html, sig, sig_txt, hint, detail_html="", current_value=None):
     c = _CLS.get(sig, _CLS["neutral"])
     detail = f"\n  {detail_html}" if detail_html else ""
-    return f"""<div class="bg-surface border border-frame rounded-2xl p-5 flex flex-col gap-3 cursor-pointer hover:border-fg/30 transition-colors" data-indicator="{key}" role="button" tabindex="0" aria-label="{title} 상세 보기">
+    # current_value: 명시되면 그대로 사용 (호출자 책임), None이면 val_html + sig_txt 자동 결합
+    if current_value is not None:
+        cur_attr = current_value
+    elif sig_txt:
+        cur_attr = f"{val_html} · {sig_txt}"
+    else:
+        cur_attr = val_html
+    return f"""<div class="bg-surface border border-frame rounded-2xl p-5 flex flex-col gap-3 cursor-pointer hover:border-fg/30 transition-colors" data-indicator="{key}" data-current="{cur_attr}" data-sig="{sig}" role="button" tabindex="0" aria-label="{title} 상세 보기">
   <div class="flex items-start justify-between gap-2">
     <div>
       <div class="text-xs text-muted uppercase tracking-widest mb-0.5">{en}</div>
@@ -587,16 +594,24 @@ def _index_card(t):
         ma_sig, ma_txt = signal_color("ma200", t["ma200_above"])
         mc = _CLS.get(ma_sig, _CLS["neutral"])
         diff = t["ma200_diff_pct"] if t["ma200_diff_pct"] is not None else 0
-        diff_str = f"({'↑' if diff >= 0 else '↓'}{abs(diff):.1f}%)"
-        ma_html = f"""<div class="flex items-center justify-between text-xs cursor-pointer hover:bg-frame/40 rounded px-1 -mx-1 transition-colors" data-indicator="ma200" role="button" tabindex="0" aria-label="MA200 설명">
+        arrow = "↑" if diff >= 0 else "↓"
+        diff_str = f"({arrow}{abs(diff):.1f}%)"
+        ma_position = "200일선 위" if t["ma200_above"] else "200일선 아래"
+        short_ma = "상승추세" if t["ma200_above"] else "하락추세"
+        ma_current = f"{t['name']} · {ma_position} {arrow}{abs(diff):.1f}% · {short_ma}"
+        ma_html = f"""<div class="flex items-center justify-between text-xs cursor-pointer hover:bg-frame/40 rounded px-1 -mx-1 transition-colors" data-indicator="ma200" data-current="{ma_current}" data-sig="{ma_sig}" role="button" tabindex="0" aria-label="MA200 설명">
       <span class="text-muted">MA200 <span class="font-mono">{diff_str}</span></span>
       <span class="{mc['bg']} {mc['text']} {mc['border']} border rounded-full px-2 py-0.5 font-semibold">{ma_txt}</span>
     </div>"""
     else:
-        ma_html = '<div class="text-xs text-muted cursor-pointer hover:bg-frame/40 rounded px-1 -mx-1 transition-colors" data-indicator="ma200" role="button" tabindex="0" aria-label="MA200 설명">MA200 데이터 부족 (1년 미만)</div>'
+        ma_current = f"{t['name']} · MA200 데이터 부족 (1년 미만)"
+        ma_html = f'<div class="text-xs text-muted cursor-pointer hover:bg-frame/40 rounded px-1 -mx-1 transition-colors" data-indicator="ma200" data-current="{ma_current}" data-sig="neutral" role="button" tabindex="0" aria-label="MA200 설명">MA200 데이터 부족 (1년 미만)</div>'
 
     pos = t["pos_52w"] if t["pos_52w"] is not None else 50
     pos_col = "#3fb950" if pos <= 30 else ("#d29922" if pos <= 70 else "#f85149")
+    pos_sig, pos_txt = signal_color("52w", pos)
+    pos_current = f"{t['name']} · 52주 저점에서 {pos:.0f}% 위치 · {pos_txt}"
+    rsi_current = f"{t['name']} · RSI {t['rsi']} · {rsi_txt}"
 
     return f"""<div class="bg-surface border border-frame rounded-2xl p-5 flex flex-col gap-3">
   <div class="flex items-start justify-between">
@@ -608,12 +623,12 @@ def _index_card(t):
   </div>
   <div class="text-2xl font-bold text-fg">{t['price_str']}</div>
   <div class="border-t border-frame pt-3 flex flex-col gap-2">
-    <div class="flex items-center justify-between text-xs cursor-pointer hover:bg-frame/40 rounded px-1 -mx-1 transition-colors" data-indicator="rsi" role="button" tabindex="0" aria-label="RSI 설명">
+    <div class="flex items-center justify-between text-xs cursor-pointer hover:bg-frame/40 rounded px-1 -mx-1 transition-colors" data-indicator="rsi" data-current="{rsi_current}" data-sig="{rsi_sig}" role="button" tabindex="0" aria-label="RSI 설명">
       <span class="text-muted">RSI <span class="font-mono font-bold">{t['rsi']}</span> <span class="text-muted/60">(30↓매수·70↑주의)</span></span>
       <span class="{rc['bg']} {rc['text']} {rc['border']} border rounded-full px-2 py-0.5 font-semibold">{rsi_txt}</span>
     </div>
     {ma_html}
-    <div class="mt-0.5 cursor-pointer hover:bg-frame/40 rounded px-1 -mx-1 py-1 transition-colors" data-indicator="52w" role="button" tabindex="0" aria-label="52주 위치 설명">
+    <div class="mt-0.5 cursor-pointer hover:bg-frame/40 rounded px-1 -mx-1 py-1 transition-colors" data-indicator="52w" data-current="{pos_current}" data-sig="{pos_sig}" role="button" tabindex="0" aria-label="52주 위치 설명">
       <div class="flex justify-between text-xs text-muted mb-1">
         <span>52주 저점</span>
         <span class="font-bold" style="color:{pos_col}">{pos:.0f}%</span>
@@ -673,7 +688,8 @@ def build_html(data, serve_mode=True):
 
     # ── Fear & Greed 카드 ──
     fg_str = str(fg["score"]) if fg["score"] is not None else "N/A"
-    fear_card = f"""<div class="bg-surface border border-frame rounded-2xl p-5 flex flex-col gap-3 cursor-pointer hover:border-fg/30 transition-colors" data-indicator="fear_greed" role="button" tabindex="0" aria-label="공포 탐욕 지수 상세 보기">
+    fg_current = f"{fg_str} / 100 · {fg_txt}"
+    fear_card = f"""<div class="bg-surface border border-frame rounded-2xl p-5 flex flex-col gap-3 cursor-pointer hover:border-fg/30 transition-colors" data-indicator="fear_greed" data-current="{fg_current}" data-sig="{fg_sig}" role="button" tabindex="0" aria-label="공포 탐욕 지수 상세 보기">
   <div class="flex items-start justify-between gap-2">
     <div>
       <div class="text-xs text-muted uppercase tracking-widest mb-0.5">CNN Fear &amp; Greed</div>
@@ -728,7 +744,8 @@ def build_html(data, serve_mode=True):
     else:
         ys_main, ys_sub = "N/A", ""
     ys_detail = f'<div class="text-xs text-muted">{ys_sub}</div>' if ys_sub else ""
-    ys_html = f"""<div class="bg-surface border border-frame rounded-2xl p-5 flex flex-col gap-3 cursor-pointer hover:border-fg/30 transition-colors" data-indicator="yield_spread" role="button" tabindex="0" aria-label="금리차 상세 보기">
+    ys_current = f"{ys_main} · {ys_txt}"
+    ys_html = f"""<div class="bg-surface border border-frame rounded-2xl p-5 flex flex-col gap-3 cursor-pointer hover:border-fg/30 transition-colors" data-indicator="yield_spread" data-current="{ys_current}" data-sig="{ys_sig}" role="button" tabindex="0" aria-label="금리차 상세 보기">
   <div class="flex items-start justify-between gap-2">
     <div>
       <div class="text-xs text-muted uppercase tracking-widest mb-0.5">10Y-3M Yield Spread</div>
@@ -753,14 +770,20 @@ def build_html(data, serve_mode=True):
     else:
         tr_val_html = "N/A"
     tr_detail = ""
+    # 짧은 라벨 — tr_txt("200일선 위 (상승추세)")는 val_html과 중복돼서 풀 라벨 대신 사용
+    short_trend = "상승추세" if data.get("sp500_trend") else "하락추세" if data.get("sp500_trend") is False else "데이터 없음"
+    tr_current = f"{tr_val_html} · {short_trend}"
     if data.get("sp500_trend_pct") is not None:
         pct = data["sp500_trend_pct"]
-        tr_detail = f'<div class="text-xs text-muted">MA200 대비 {"↑" if pct >= 0 else "↓"}{abs(pct):.1f}%</div>'
+        arrow = "↑" if pct >= 0 else "↓"
+        tr_detail = f'<div class="text-xs text-muted">MA200 대비 {arrow}{abs(pct):.1f}%</div>'
+        tr_current = f"{tr_val_html} ({arrow}{abs(pct):.1f}%) · {short_trend}"
     trend_card = _macro_card(
         "ma200", "📏", "S&P500 추세", "SPY vs 200-day MA",
         tr_val_html, tr_sig, tr_txt,
         "S&P 500이 200일 이동평균보다 높으면 상승추세(강세장), 낮으면 하락추세(약세장)예요.",
         tr_detail,
+        current_value=tr_current,
     )
 
     # ── 지수 카드 ──
@@ -918,6 +941,10 @@ def build_html(data, serve_mode=True):
       <button id="modal-close" type="button" class="text-muted hover:text-fg text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-frame transition-colors shrink-0" aria-label="닫기">×</button>
     </div>
     <div class="p-5 flex flex-col gap-5">
+      <div id="modal-current-wrap" class="bg-frame/30 rounded-xl p-4 border border-frame">
+        <div class="text-xs text-muted uppercase tracking-widest mb-1">현재 수치</div>
+        <div id="modal-current" class="text-xl font-bold"></div>
+      </div>
       <div>
         <div class="text-xs text-muted uppercase tracking-widest mb-2">이 지표가 뭔가요?</div>
         <p id="modal-description" class="text-sm text-fg leading-relaxed"></p>
@@ -951,10 +978,13 @@ const INDICATOR_INFO = {indicator_info_json};
 const SIG_TEXT = {{good: 'text-good', warn: 'text-warn', bad: 'text-danger', neutral: 'text-muted'}};
 const modal = document.getElementById('indicator-modal');
 
-function openModal(key) {{
+function openModal(key, currentText, sigKey) {{
   const info = INDICATOR_INFO[key];
   if (!info) return;
   document.getElementById('modal-title').textContent = info.title;
+  const cur = document.getElementById('modal-current');
+  cur.textContent = currentText || '데이터 없음';
+  cur.className = 'text-xl font-bold ' + (SIG_TEXT[sigKey] || 'text-muted');
   document.getElementById('modal-description').textContent = info.description;
   document.getElementById('modal-caveat').textContent = info.caveat;
   const src = document.getElementById('modal-source');
@@ -985,7 +1015,7 @@ document.addEventListener('click', (e) => {{
   const el = e.target.closest('[data-indicator]');
   if (el) {{
     e.preventDefault();
-    openModal(el.dataset.indicator);
+    openModal(el.dataset.indicator, el.dataset.current || '', el.dataset.sig || 'neutral');
   }}
 }});
 
@@ -995,9 +1025,10 @@ document.addEventListener('keydown', (e) => {{
     closeModal();
     return;
   }}
-  if ((e.key === 'Enter' || e.key === ' ') && document.activeElement?.dataset?.indicator) {{
+  const el = document.activeElement;
+  if ((e.key === 'Enter' || e.key === ' ') && el?.dataset?.indicator) {{
     e.preventDefault();
-    openModal(document.activeElement.dataset.indicator);
+    openModal(el.dataset.indicator, el.dataset.current || '', el.dataset.sig || 'neutral');
   }}
 }});
 
