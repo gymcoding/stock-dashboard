@@ -41,6 +41,19 @@ _DOT = {"good": "#3fb950", "warn": "#d29922", "bad": "#f85149", "neutral": "#8b9
 # thresholds는 signal_color()의 if/elif 임계값과 일치해야 함 (별도 검증 필요).
 
 INDICATOR_INFO = {
+    "overall": {
+        "title": "종합 투자 신호 (7개 컴포넌트)",
+        "description": "이 대시보드의 종합 신호는 CNN Fear & Greed Index(7-component composite)와 Goldman Sachs Bull/Bear Indicator(6-component) 방법론을 참고해 7개 지표를 종합한 결과예요. 각 지표를 매수(+1)·중립(0)·주의(-1)·위험(-2) 4단계로 분류하고 합산해서 최종 점수(범위: -14 ~ +7)를 산출해요. 점수 구간에 따라 4가지 행동 권고를 보여줘요.",
+        "thresholds": [
+            ("≥ +4점",  "매수 유리 — 장기 투자 시작 좋은 환경", "good"),
+            ("0 ~ +3점", "중립 — 관망 추천", "neutral"),
+            ("-1 ~ -5점", "주의 — 신중하게 (분할 매수/관망)", "warn"),
+            ("≤ -6점",  "위험 — 방어적으로 (현금 비중 ↑)", "bad"),
+        ],
+        "source_url": "https://github.com/gymcoding/stock-dashboard",
+        "source_label": "방법론·코드 (GitHub)",
+        "caveat": "이 신호는 학술적 백테스트가 아닌 휴리스틱(experience-based heuristic)이에요. 카드를 클릭해 각 컴포넌트의 현재값·임계값·검증 출처를 직접 확인하세요. 매매 결정은 본인 책임이며 다른 지표·뉴스와 함께 종합 판단해야 해요.",
+    },
     "fear_greed": {
         "title": "CNN 공포 & 탐욕 지수",
         "description": "CNN이 매일 발표하는 미국 주식시장 투자자 심리 지표예요. S&P500 모멘텀, 주식 가격 강도, 풋콜 비율 등 7개 하위 지표를 0~100 점수로 종합해요. 0에 가까울수록 투자자가 겁먹어 매도세가 강하고, 100에 가까울수록 욕심을 부리며 매수세가 강한 상태예요.",
@@ -956,6 +969,29 @@ def build_html(data, serve_mode=True):
         current_value=dxt_current,
     )
 
+    # ── 종합 신호 컴포넌트 배지 — 7개 ──
+    # 각 배지는 카드와 동일한 신호 색깔 + 현재값 표시. 클릭 시 해당 컴포넌트 모달.
+    fg_score_str = fg_str  # fear_card에서 만든 값
+    vix_str = f"{data.get('vix')}" if data.get("vix") is not None else "N/A"
+    component_specs = [
+        ("fear_greed",  "😨", "F&G",   fg_score_str,                       fg_current,  fg_sig),
+        ("vix",         "🌊", "VIX",   vix_str,                            f"{vix_str} · {vx_txt}", vx_sig),
+        ("yield_spread","📉", "금리차", ys_main,                            ys_current,  ys_sig),
+        ("ma200",       "📏", "추세",   tr_val_html,                        tr_current,  tr_sig),
+        ("ma_cross",    "⚡", "강도",   mc_display.get(mc_val, "N/A"),       f"{mc_display.get(mc_val, 'N/A')} · {mc_txt}", mc_sig),
+        ("hy_spread",   "🏦", "HY",    hy_val_html,                        f"{hy_val_html} · {hy_txt}", hy_sig),
+        ("dxy_trend",   "🌍", "달러",   dxt_val_html,                       dxt_current, dxt_sig),
+    ]
+    component_badges = "".join(
+        f'<button type="button" data-indicator="{key}" data-current="{cur}" data-sig="{sg}" '
+        f'class="inline-flex items-center gap-1.5 {_CLS.get(sg, _CLS["neutral"])["text"]} '
+        f'{_CLS.get(sg, _CLS["neutral"])["bg"]} {_CLS.get(sg, _CLS["neutral"])["border"]} '
+        f'border rounded-full px-2.5 py-1 text-xs hover:opacity-80 transition-opacity cursor-pointer">'
+        f'<span aria-hidden="true">{emoji}</span><span>{label}</span>'
+        f'<span class="font-mono font-bold">{val}</span></button>'
+        for key, emoji, label, val, cur, sg in component_specs
+    )
+
     # ── 지수 카드 ──
     idx_html = "\n".join(_index_card(t) for t in data["tickers"])
 
@@ -1055,15 +1091,22 @@ def build_html(data, serve_mode=True):
     </div>
   </div>
 
-  <!-- 종합 신호등 -->
-  <div class="bg-surface border border-frame rounded-2xl p-6 mb-8">
+  <!-- 종합 신호등 (클릭 시 종합 모달, 배지 클릭 시 해당 컴포넌트 모달) -->
+  <div class="bg-surface border border-frame rounded-2xl p-6 mb-8 cursor-pointer hover:border-fg/30 transition-colors"
+       data-indicator="overall"
+       data-current="긍정 {good_n} · 중립 {neutral_n} · 주의 {warn_n} · 위험 {bad_n} → {ov_label}"
+       data-sig="{ov_key}"
+       role="button" tabindex="0" aria-label="종합 신호 판단 근거 보기">
     <div class="flex items-center gap-5 flex-wrap">
       <div class="w-16 h-16 rounded-full flex items-center justify-center shrink-0"
            style="background:{ov_dot}1a; border:2px solid {ov_dot}">
         <div class="w-6 h-6 rounded-full" style="background:{ov_dot}; box-shadow:0 0 14px {ov_dot}99"></div>
       </div>
       <div class="flex-1 min-w-0">
-        <div class="text-xs text-muted uppercase tracking-widest mb-1">종합 투자 신호 (7개 타이밍 지표 기반)</div>
+        <div class="text-xs text-muted uppercase tracking-widest mb-1 flex items-center gap-1.5">
+          <span>종합 투자 신호 (7개 타이밍 지표 기반)</span>
+          <span class="text-fg/40">ⓘ</span>
+        </div>
         <div class="text-xl font-bold {ov_c['text']}">{ov_label}</div>
         <div class="text-sm text-muted mt-1 leading-relaxed">{ov_comment}</div>
       </div>
@@ -1073,6 +1116,14 @@ def build_html(data, serve_mode=True):
         <div><div class="text-warn font-bold text-xl">{warn_n}</div><div class="text-muted text-xs mt-0.5">주의</div></div>
         <div><div class="text-danger font-bold text-xl">{bad_n}</div><div class="text-muted text-xs mt-0.5">위험</div></div>
       </div>
+    </div>
+    <!-- 7개 컴포넌트 배지 — 각 클릭 시 해당 컴포넌트 모달 -->
+    <div class="mt-5 pt-5 border-t border-frame">
+      <div class="text-xs text-muted uppercase tracking-widest mb-3">판단 근거 — 7개 컴포넌트</div>
+      <div class="flex flex-wrap gap-2">
+        {component_badges}
+      </div>
+      <div class="text-xs text-muted mt-3">계산: 각 매수 +1·중립 0·주의 -1·위험 -2 합산 → 임계값 비교. 카드 빈 공간 클릭 시 방법론 상세.</div>
     </div>
   </div>
 
