@@ -9,7 +9,7 @@
     KAKAO_REST_API_KEY        — Kakao Developers 콘솔 발급
     KAKAO_CLIENT_SECRET       — 콘솔 시크릿 활성화 시 필수 (없으면 KOE010)
     KAKAO_REFRESH_TOKEN       — setup_kakao.py로 발급
-    SITE_URL                  — 카톡 메시지 안 링크 (default: https://stock.gymcoding.co)
+    SITE_URL                  — 카톡 메시지 안 링크 (default: https://techboost.dev)
     GH_PAT / GH_REPO          — refresh_token 회전 시 자동 GitHub Secret 갱신용 (선택, GHA 환경)
 
 로컬 실행 시 .env에서 자동 로드.
@@ -168,7 +168,7 @@ def main():
     api_key = get_env(env, "KAKAO_REST_API_KEY")
     client_secret = get_env(env, "KAKAO_CLIENT_SECRET")
     refresh_token = get_env(env, "KAKAO_REFRESH_TOKEN")
-    site_url = get_env(env, "SITE_URL", "https://stock.gymcoding.co")
+    site_url = get_env(env, "SITE_URL", "https://techboost.dev")
 
     if not (api_key and refresh_token):
         print("❌ KAKAO_REST_API_KEY 또는 KAKAO_REFRESH_TOKEN이 없어요.", file=sys.stderr)

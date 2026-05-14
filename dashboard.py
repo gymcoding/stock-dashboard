@@ -401,7 +401,7 @@ def format_kakao_summary(data):
         tr_line = "📏 S&P500 추세 N/A"
 
     ov_emoji = _OV_EMOJI.get(sig["key"], "⚪")
-    site_url = os.environ.get("SITE_URL", "https://stock.gymcoding.co")
+    site_url = os.environ.get("SITE_URL", "https://techboost.dev")
 
     return "\n".join([
         f"📊 {today} 투자 신호",
@@ -1494,13 +1494,30 @@ def serve(port=8765):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+
+
+def _copy_public_assets(out_dir):
+    """public/ 디렉토리의 정적 자산(ads.txt·CNAME·robots.txt 등)을 빌드 출력 디렉토리로 재귀 복사."""
+    import shutil
+    public_dir = os.path.join(_PROJECT_ROOT, "public")
+    if not os.path.isdir(public_dir):
+        return []
+    shutil.copytree(public_dir, out_dir, dirs_exist_ok=True)
+    return sorted(
+        os.path.relpath(os.path.join(root, f), public_dir)
+        for root, _, files in os.walk(public_dir)
+        for f in files
+    )
+
+
 def main():
     """기본은 서버 모드, --static 시 정적 HTML 파일 생성."""
     parser = argparse.ArgumentParser(description="투자 지표 대시보드")
     parser.add_argument("--static", action="store_true",
                         help="정적 HTML 파일 생성 모드 (서버 없이)")
     parser.add_argument("--out", type=str, default=None,
-                        help="HTML 출력 경로 (--static 모드, 기본: ./index.html)")
+                        help="HTML 출력 경로 (--static 모드, 기본: ./_site/index.html)")
     parser.add_argument("--no-open", action="store_true",
                         help="브라우저 자동 오픈 비활성 (CI용)")
     parser.add_argument("--port", type=int, default=8765,
@@ -1510,14 +1527,15 @@ def main():
     if args.static:
         data = collect_data()
         html = build_html(data, serve_mode=False)
-        # B1: 기본 출력은 index.html (Pages 루트 진입 호환)
-        if args.out:
-            out = os.path.abspath(args.out)
-        else:
-            out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
-        os.makedirs(os.path.dirname(out), exist_ok=True)
+        # 기본 출력: _site/index.html (Cloudflare Pages·GitHub Pages 공통 산출물 디렉토리)
+        out = os.path.abspath(args.out) if args.out else os.path.join(_PROJECT_ROOT, "_site", "index.html")
+        out_dir = os.path.dirname(out)
+        os.makedirs(out_dir, exist_ok=True)
         with open(out, "w", encoding="utf-8") as f:
             f.write(html)
+        copied = _copy_public_assets(out_dir)
+        if copied:
+            print(f"   📂 public/ 복사: {', '.join(copied)}")
         print(f"\n✅ 대시보드 생성 완료: {out}")
         if not args.no_open and not os.environ.get("CI"):
             webbrowser.open(f"file://{out}")

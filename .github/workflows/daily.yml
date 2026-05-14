@@ -46,15 +46,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # B1/B2: index.html을 _site/에만 화이트리스트로 배포 (소스 노출 방지)
+      # 정적 사이트 빌드 → _site/ (index.html + public/* 자동 포함)
       - name: Build static site
         env:
           CI: 'true'
-        run: |
-          mkdir -p _site
-          python dashboard.py --static --out _site/index.html --no-open
-          # CNAME 파일이 있으면 _site/로 복사 (custom domain용)
-          if [ -f CNAME ]; then cp CNAME _site/; fi
+        run: python dashboard.py --static
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -72,7 +68,7 @@ jobs:
           KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
           KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
           KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
-          SITE_URL: https://stock.gymcoding.co
+          SITE_URL: https://techboost.dev
           # M1: refresh_token 회전 시 자동 Secret 갱신 (선택, GH_PAT 등록 시만 동작)
           GH_PAT: ${{ secrets.GH_PAT }}
           GH_REPO: ${{ github.repository }}
