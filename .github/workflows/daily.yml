@@ -6,6 +6,14 @@ on:
     - cron: '37 22 * * *'
   # GitHub Actions UI에서 "Run workflow" 수동 트리거
   workflow_dispatch: {}
+  # main 푸시 시 자동 재배포 (코드/UI 변경 즉시 반영)
+  push:
+    branches: [main]
+    paths:
+      - 'dashboard.py'
+      - 'scripts/**'
+      - 'requirements.txt'
+      - '.github/workflows/daily.yml'
 
 # B3: deploy-pages가 요구하는 권한
 permissions:
@@ -58,6 +66,8 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: Send Kakao daily report
+        # push 트리거(코드 변경 재배포)에서는 카카오 알림 제외 — schedule/수동 실행에서만 발송
+        if: github.event_name != 'push'
         env:
           KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
           KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
