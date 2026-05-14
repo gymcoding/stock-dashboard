@@ -635,7 +635,8 @@ def analyze_ticker(ticker, name):
 # ── HTML Helpers ──────────────────────────────────────────────────────────────
 
 # text-muted: #a0aab4 — WCAG AA 명암비 ≈ 5.1:1 (#0d1117 대비)
-_STYLE = """<style type="text/tailwindcss">
+_STYLE = """<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css" />
+<style type="text/tailwindcss">
 @theme {
   --color-good:    #3fb950;
   --color-warn:    #d29922;
@@ -645,11 +646,41 @@ _STYLE = """<style type="text/tailwindcss">
   --color-frame:   #21262d;
   --color-muted:   #a0aab4;
   --color-fg:      #e6edf3;
+  --font-sans:     'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', 'Noto Sans KR', sans-serif;
 }
-body { font-family: -apple-system, 'Malgun Gothic', 'Noto Sans KR', sans-serif; }
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
 details summary { cursor: pointer; list-style: none; }
 details summary::-webkit-details-marker { display: none; }
 details[open] .arrow { transform: rotate(90deg); }
+
+/* 모바일 터치 피드백 — hover가 없는 환경(터치 디바이스) */
+@media (hover: none) {
+  [data-indicator]:active { background-color: rgb(33 38 45 / 0.5); }
+  [role="button"]:active { transform: scale(0.99); transition: transform 0.08s; }
+}
+
+/* iOS Safari 안전 영역 — 노치 대응 */
+@supports (padding: env(safe-area-inset-bottom)) {
+  body { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* 모달 바텀시트 (모바일) — 데스크탑에서는 기본 가운데 모달 */
+@keyframes slide-up { from { transform: translateY(20%); } to { transform: translateY(0); } }
+@media (max-width: 639px) {
+  #indicator-modal { align-items: flex-end; padding: 0; }
+  #modal-card {
+    max-width: 100%;
+    max-height: 88vh;
+    max-height: 88dvh;
+    border-radius: 1rem 1rem 0 0;
+    border-bottom: 0;
+    animation: slide-up 0.2s ease-out;
+  }
+}
 </style>"""
 
 
@@ -669,19 +700,19 @@ def _macro_card(key, emoji, title, en, val_html, sig, sig_txt, hint, detail_html
         cur_attr = f"{val_html} · {sig_txt}"
     else:
         cur_attr = val_html
-    return f"""<div class="bg-surface border border-frame rounded-2xl p-5 flex flex-col gap-3 cursor-pointer hover:border-fg/30 transition-colors" data-indicator="{key}" data-current="{cur_attr}" data-sig="{sig}" role="button" tabindex="0" aria-label="{title} 상세 보기">
+    return f"""<div class="bg-surface border border-frame rounded-2xl p-4 sm:p-5 flex flex-col gap-3 cursor-pointer hover:border-fg/30 transition-colors" data-indicator="{key}" data-current="{cur_attr}" data-sig="{sig}" role="button" tabindex="0" aria-label="{title} 상세 보기">
   <div class="flex items-start justify-between gap-2">
-    <div>
-      <div class="text-xs text-muted uppercase tracking-widest mb-0.5">{en}</div>
-      <div class="font-semibold text-fg"><span aria-hidden="true">{emoji}</span> {title}</div>
+    <div class="min-w-0">
+      <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-0.5 truncate">{en}</div>
+      <div class="font-semibold text-fg text-sm sm:text-base"><span aria-hidden="true">{emoji}</span> {title}</div>
     </div>
     {_badge(sig)}
   </div>
-  <div class="text-3xl font-bold {c['text']}">{val_html}</div>{detail}
-  <div class="text-sm {c['text']}">{sig_txt}</div>
-  <div class="mt-auto text-xs text-muted border-t border-frame pt-2 flex justify-between items-center">
-    <span>{hint}</span>
-    <span class="text-fg/40 text-xs ml-2 shrink-0">ⓘ</span>
+  <div class="text-2xl sm:text-3xl font-bold {c['text']}">{val_html}</div>{detail}
+  <div class="text-xs sm:text-sm {c['text']}">{sig_txt}</div>
+  <div class="mt-auto text-xs text-muted border-t border-frame pt-2 flex justify-between items-center gap-2">
+    <span class="leading-relaxed">{hint}</span>
+    <span class="text-fg/40 text-xs shrink-0" aria-hidden="true">ⓘ</span>
   </div>
 </div>"""
 
@@ -711,7 +742,7 @@ def _gauge(score):
 
 def _index_card(t):
     if t["price_str"] == "N/A":
-        return f"""<div class="bg-surface border border-frame rounded-2xl p-5">
+        return f"""<div class="bg-surface border border-frame rounded-2xl p-4 sm:p-5">
   <div class="font-semibold text-fg mb-1">{t['name']}</div>
   <div class="text-xs text-muted mb-3">{t['ticker']}</div>
   <div class="text-muted text-sm">데이터 없음</div>
@@ -734,9 +765,9 @@ def _index_card(t):
         ma_position = "200일선 위" if t["ma200_above"] else "200일선 아래"
         short_ma = "상승추세" if t["ma200_above"] else "하락추세"
         ma_current = f"{t['name']} · {ma_position} {arrow}{abs(diff):.1f}% · {short_ma}"
-        ma_html = f"""<div class="flex items-center justify-between text-xs cursor-pointer hover:bg-frame/40 rounded px-1 -mx-1 transition-colors" data-indicator="ma200" data-current="{ma_current}" data-sig="{ma_sig}" role="button" tabindex="0" aria-label="MA200 설명">
-      <span class="text-muted">MA200 <span class="font-mono">{diff_str}</span></span>
-      <span class="{mc['bg']} {mc['text']} {mc['border']} border rounded-full px-2 py-0.5 font-semibold">{ma_txt}</span>
+        ma_html = f"""<div class="flex items-center justify-between gap-2 text-xs cursor-pointer hover:bg-frame/40 rounded px-1 -mx-1 py-1 transition-colors" data-indicator="ma200" data-current="{ma_current}" data-sig="{ma_sig}" role="button" tabindex="0" aria-label="MA200 설명">
+      <span class="text-muted min-w-0">MA200 <span class="font-mono">{diff_str}</span></span>
+      <span class="{mc['bg']} {mc['text']} {mc['border']} border rounded-full px-2 py-0.5 font-semibold whitespace-nowrap shrink-0">{ma_txt}</span>
     </div>"""
     else:
         ma_current = f"{t['name']} · MA200 데이터 부족 (1년 미만)"
@@ -748,19 +779,19 @@ def _index_card(t):
     pos_current = f"{t['name']} · 52주 저점에서 {pos:.0f}% 위치 · {pos_txt}"
     rsi_current = f"{t['name']} · RSI {t['rsi']} · {rsi_txt}"
 
-    return f"""<div class="bg-surface border border-frame rounded-2xl p-5 flex flex-col gap-3">
-  <div class="flex items-start justify-between">
-    <div>
-      <div class="font-semibold text-fg">{t['name']}</div>
+    return f"""<div class="bg-surface border border-frame rounded-2xl p-4 sm:p-5 flex flex-col gap-3">
+  <div class="flex items-start justify-between gap-2">
+    <div class="min-w-0">
+      <div class="font-semibold text-fg truncate">{t['name']}</div>
       <div class="text-xs text-muted">{t['ticker']}</div>
     </div>
-    <span class="text-xs {chg_cls} rounded-full px-2 py-0.5 font-bold">{chg_str}</span>
+    <span class="text-xs {chg_cls} rounded-full px-2 py-0.5 font-bold whitespace-nowrap shrink-0">{chg_str}</span>
   </div>
   <div class="text-2xl font-bold text-fg">{t['price_str']}</div>
   <div class="border-t border-frame pt-3 flex flex-col gap-2">
-    <div class="flex items-center justify-between text-xs cursor-pointer hover:bg-frame/40 rounded px-1 -mx-1 transition-colors" data-indicator="rsi" data-current="{rsi_current}" data-sig="{rsi_sig}" role="button" tabindex="0" aria-label="RSI 설명">
-      <span class="text-muted">RSI <span class="font-mono font-bold">{t['rsi']}</span> <span class="text-muted/60">(30↓매수·70↑주의)</span></span>
-      <span class="{rc['bg']} {rc['text']} {rc['border']} border rounded-full px-2 py-0.5 font-semibold">{rsi_txt}</span>
+    <div class="flex items-center justify-between gap-2 text-xs cursor-pointer hover:bg-frame/40 rounded px-1 -mx-1 py-1 transition-colors" data-indicator="rsi" data-current="{rsi_current}" data-sig="{rsi_sig}" role="button" tabindex="0" aria-label="RSI 설명">
+      <span class="text-muted min-w-0">RSI <span class="font-mono font-bold">{t['rsi']}</span> <span class="text-muted/60 hidden sm:inline">(30↓매수·70↑주의)</span></span>
+      <span class="{rc['bg']} {rc['text']} {rc['border']} border rounded-full px-2 py-0.5 font-semibold whitespace-nowrap shrink-0">{rsi_txt}</span>
     </div>
     {ma_html}
     <div class="mt-0.5 cursor-pointer hover:bg-frame/40 rounded px-1 -mx-1 py-1 transition-colors" data-indicator="52w" data-current="{pos_current}" data-sig="{pos_sig}" role="button" tabindex="0" aria-label="52주 위치 설명">
@@ -779,12 +810,12 @@ def _index_card(t):
 
 def _guide(term, short, detail):
     return f"""<details class="border border-frame rounded-xl overflow-hidden">
-  <summary class="flex items-center gap-3 p-4 hover:bg-frame/50 transition-colors">
-    <span class="font-semibold text-fg text-sm"><span aria-hidden="true">{term.split()[0]}</span> {' '.join(term.split()[1:])}</span>
-    <span class="text-muted text-xs flex-1">{short}</span>
-    <span class="arrow text-muted text-xs transition-transform duration-200">▶</span>
+  <summary class="flex items-center gap-3 p-3 sm:p-4 hover:bg-frame/50 transition-colors min-h-[48px]">
+    <span class="font-semibold text-fg text-sm shrink-0"><span aria-hidden="true">{term.split()[0]}</span> {' '.join(term.split()[1:])}</span>
+    <span class="text-muted text-xs flex-1 hidden sm:inline truncate">{short}</span>
+    <span class="arrow text-muted text-xs transition-transform duration-200 ml-auto sm:ml-0 shrink-0" aria-hidden="true">▶</span>
   </summary>
-  <div class="px-4 pb-4 pt-3 text-sm text-muted leading-relaxed border-t border-frame">{detail}</div>
+  <div class="px-3 sm:px-4 pb-3 sm:pb-4 pt-3 text-sm text-muted leading-relaxed border-t border-frame">{detail}</div>
 </details>"""
 
 
@@ -794,8 +825,8 @@ def build_html(data, serve_mode=True):
     now = datetime.now(KST).strftime("%Y-%m-%d %H:%M KST")
     indicator_info_json = json.dumps(INDICATOR_INFO, ensure_ascii=False)
     refresh_block = (
-        '<button id="refresh-btn" type="button" class="mt-2 inline-flex items-center gap-1.5 bg-frame hover:bg-frame/70 border border-frame text-fg text-sm rounded-full px-3 py-1.5 transition-colors disabled:opacity-50 disabled:cursor-wait" aria-label="데이터 새로고침">'
-        '<span id="refresh-icon">🔄</span><span id="refresh-text">새로고침</span></button>'
+        '<button id="refresh-btn" type="button" class="mt-0 sm:mt-2 inline-flex items-center gap-1.5 bg-frame hover:bg-frame/70 border border-frame text-fg text-sm rounded-full px-3 py-2 transition-colors disabled:opacity-50 disabled:cursor-wait min-h-[36px]" aria-label="데이터 새로고침">'
+        '<span id="refresh-icon" aria-hidden="true">🔄</span><span id="refresh-text">새로고침</span></button>'
         if serve_mode
         else '<div class="text-xs text-muted mt-1.5">터미널에서 <code class="bg-frame px-1 rounded font-mono">python3 dashboard.py</code> 실행 시 갱신</div>'
     )
@@ -829,20 +860,20 @@ def build_html(data, serve_mode=True):
     # ── Fear & Greed 카드 ──
     fg_str = str(fg["score"]) if fg["score"] is not None else "N/A"
     fg_current = f"{fg_str} / 100 · {fg_txt}"
-    fear_card = f"""<div class="bg-surface border border-frame rounded-2xl p-5 flex flex-col gap-3 cursor-pointer hover:border-fg/30 transition-colors" data-indicator="fear_greed" data-current="{fg_current}" data-sig="{fg_sig}" role="button" tabindex="0" aria-label="공포 탐욕 지수 상세 보기">
+    fear_card = f"""<div class="bg-surface border border-frame rounded-2xl p-4 sm:p-5 flex flex-col gap-3 cursor-pointer hover:border-fg/30 transition-colors" data-indicator="fear_greed" data-current="{fg_current}" data-sig="{fg_sig}" role="button" tabindex="0" aria-label="공포 탐욕 지수 상세 보기">
   <div class="flex items-start justify-between gap-2">
-    <div>
-      <div class="text-xs text-muted uppercase tracking-widest mb-0.5">CNN Fear &amp; Greed</div>
-      <div class="font-semibold text-fg"><span aria-hidden="true">😨</span> 공포 &amp; 탐욕 지수</div>
+    <div class="min-w-0">
+      <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-0.5 truncate">CNN Fear &amp; Greed</div>
+      <div class="font-semibold text-fg text-sm sm:text-base"><span aria-hidden="true">😨</span> 공포 &amp; 탐욕 지수</div>
     </div>
     {_badge(fg_sig)}
   </div>
   {_gauge(fg["score"])}
-  <div class="text-center text-3xl font-bold {_CLS[fg_sig]['text']}">{fg_str} <span class="text-base font-normal text-muted">/ 100</span></div>
-  <div class="text-sm {_CLS[fg_sig]['text']} text-center">{fg_txt}</div>
-  <div class="mt-auto text-xs text-muted border-t border-frame pt-2 flex justify-between items-center">
-    <span>0에 가까울수록 투자자들이 겁먹은 상태예요. 겁먹었을 때가 사기 좋은 타이밍이에요.</span>
-    <span class="text-fg/40 text-xs ml-2 shrink-0">ⓘ</span>
+  <div class="text-center text-2xl sm:text-3xl font-bold {_CLS[fg_sig]['text']}">{fg_str} <span class="text-base font-normal text-muted">/ 100</span></div>
+  <div class="text-xs sm:text-sm {_CLS[fg_sig]['text']} text-center">{fg_txt}</div>
+  <div class="mt-auto text-xs text-muted border-t border-frame pt-2 flex justify-between items-center gap-2">
+    <span class="leading-relaxed">0에 가까울수록 투자자들이 겁먹은 상태예요. 겁먹었을 때가 사기 좋은 타이밍이에요.</span>
+    <span class="text-fg/40 text-xs shrink-0" aria-hidden="true">ⓘ</span>
   </div>
 </div>"""
 
@@ -885,20 +916,20 @@ def build_html(data, serve_mode=True):
         ys_main, ys_sub = "N/A", ""
     ys_detail = f'<div class="text-xs text-muted">{ys_sub}</div>' if ys_sub else ""
     ys_current = f"{ys_main} · {ys_txt}"
-    ys_html = f"""<div class="bg-surface border border-frame rounded-2xl p-5 flex flex-col gap-3 cursor-pointer hover:border-fg/30 transition-colors" data-indicator="yield_spread" data-current="{ys_current}" data-sig="{ys_sig}" role="button" tabindex="0" aria-label="금리차 상세 보기">
+    ys_html = f"""<div class="bg-surface border border-frame rounded-2xl p-4 sm:p-5 flex flex-col gap-3 cursor-pointer hover:border-fg/30 transition-colors" data-indicator="yield_spread" data-current="{ys_current}" data-sig="{ys_sig}" role="button" tabindex="0" aria-label="금리차 상세 보기">
   <div class="flex items-start justify-between gap-2">
-    <div>
-      <div class="text-xs text-muted uppercase tracking-widest mb-0.5">10Y-3M Yield Spread</div>
-      <div class="font-semibold text-fg"><span aria-hidden="true">📉</span> 금리차 (경기침체 신호)</div>
+    <div class="min-w-0">
+      <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-0.5 truncate">10Y-3M Yield Spread</div>
+      <div class="font-semibold text-fg text-sm sm:text-base"><span aria-hidden="true">📉</span> 금리차 (경기침체 신호)</div>
     </div>
     {_badge(ys_sig)}
   </div>
-  <div class="text-3xl font-bold {_CLS[ys_sig]['text']}">{ys_main}</div>
+  <div class="text-2xl sm:text-3xl font-bold {_CLS[ys_sig]['text']}">{ys_main}</div>
   {ys_detail}
-  <div class="text-sm {_CLS[ys_sig]['text']}">{ys_txt}</div>
-  <div class="mt-auto text-xs text-muted border-t border-frame pt-2 flex justify-between items-center">
-    <span>장기금리 - 단기금리예요. 0% 아래로 내려가면 경기침체 경고등이에요.</span>
-    <span class="text-fg/40 text-xs ml-2 shrink-0">ⓘ</span>
+  <div class="text-xs sm:text-sm {_CLS[ys_sig]['text']}">{ys_txt}</div>
+  <div class="mt-auto text-xs text-muted border-t border-frame pt-2 flex justify-between items-center gap-2">
+    <span class="leading-relaxed">장기금리 - 단기금리예요. 0% 아래로 내려가면 경기침체 경고등이에요.</span>
+    <span class="text-fg/40 text-xs shrink-0" aria-hidden="true">ⓘ</span>
   </div>
 </div>"""
 
@@ -986,7 +1017,7 @@ def build_html(data, serve_mode=True):
         f'<button type="button" data-indicator="{key}" data-current="{cur}" data-sig="{sg}" '
         f'class="inline-flex items-center gap-1.5 {_CLS.get(sg, _CLS["neutral"])["text"]} '
         f'{_CLS.get(sg, _CLS["neutral"])["bg"]} {_CLS.get(sg, _CLS["neutral"])["border"]} '
-        f'border rounded-full px-2.5 py-1 text-xs hover:opacity-80 transition-opacity cursor-pointer">'
+        f'border rounded-full px-3 py-1.5 text-xs hover:opacity-80 transition-opacity cursor-pointer min-h-[32px]">'
         f'<span aria-hidden="true">{emoji}</span><span>{label}</span>'
         f'<span class="font-mono font-bold">{val}</span></button>'
         for key, emoji, label, val, cur, sg in component_specs
@@ -1073,63 +1104,63 @@ def build_html(data, serve_mode=True):
 {_STYLE}
 </head>
 <body class="bg-base text-fg min-h-screen">
-<div class="max-w-6xl mx-auto px-4 py-8">
+<div class="max-w-6xl mx-auto px-3 sm:px-4 py-5 sm:py-8">
 
-  <!-- 헤더 -->
-  <div class="flex items-start justify-between mb-8 gap-4">
-    <div>
-      <h1 class="text-2xl font-bold text-fg"><span aria-hidden="true">📊</span> 투자 지표 대시보드</h1>
-      <p class="text-sm text-muted mt-1">주식 초보자를 위한 투자 타이밍 신호등</p>
+  <!-- 헤더 — 모바일: 세로 스택, 데스크탑: 좌우 정렬 -->
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6 sm:mb-8">
+    <div class="min-w-0">
+      <h1 class="text-xl sm:text-2xl font-bold text-fg"><span aria-hidden="true">📊</span> 투자 지표 대시보드</h1>
+      <p class="text-xs sm:text-sm text-muted mt-1">주식 초보자를 위한 투자 타이밍 신호등</p>
     </div>
-    <div class="text-right shrink-0">
-      <div class="text-xs text-muted mb-0.5">마지막 업데이트</div>
+    <div class="flex items-center gap-2 flex-wrap sm:flex-col sm:items-end sm:gap-0 sm:text-right shrink-0">
+      <div class="hidden sm:block text-xs text-muted mb-0.5">마지막 업데이트</div>
       <div class="inline-flex items-center gap-1.5 bg-frame border border-frame rounded-full px-2.5 py-1">
-        <span class="w-1.5 h-1.5 rounded-full bg-good"></span>
-        <span class="text-sm font-mono text-fg">{now}</span>
+        <span class="w-1.5 h-1.5 rounded-full bg-good shrink-0" aria-hidden="true"></span>
+        <span class="text-xs sm:text-sm font-mono text-fg">{now}</span>
       </div>
       {refresh_block}
     </div>
   </div>
 
   <!-- 종합 신호등 (클릭 시 종합 모달, 배지 클릭 시 해당 컴포넌트 모달) -->
-  <div class="bg-surface border border-frame rounded-2xl p-6 mb-8 cursor-pointer hover:border-fg/30 transition-colors"
+  <div class="bg-surface border border-frame rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8 cursor-pointer hover:border-fg/30 transition-colors"
        data-indicator="overall"
        data-current="긍정 {good_n} · 중립 {neutral_n} · 주의 {warn_n} · 위험 {bad_n} → {ov_label}"
        data-sig="{ov_key}"
        role="button" tabindex="0" aria-label="종합 신호 판단 근거 보기">
-    <div class="flex items-center gap-5 flex-wrap">
-      <div class="w-16 h-16 rounded-full flex items-center justify-center shrink-0"
+    <div class="flex items-center gap-3 sm:gap-5 flex-wrap">
+      <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center shrink-0"
            style="background:{ov_dot}1a; border:2px solid {ov_dot}">
-        <div class="w-6 h-6 rounded-full" style="background:{ov_dot}; box-shadow:0 0 14px {ov_dot}99"></div>
+        <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full" style="background:{ov_dot}; box-shadow:0 0 14px {ov_dot}99"></div>
       </div>
       <div class="flex-1 min-w-0">
-        <div class="text-xs text-muted uppercase tracking-widest mb-1 flex items-center gap-1.5">
-          <span>종합 투자 신호 (7개 타이밍 지표 기반)</span>
-          <span class="text-fg/40">ⓘ</span>
+        <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-1 flex items-center gap-1.5">
+          <span>종합 투자 신호 <span class="hidden sm:inline">(7개 타이밍 지표 기반)</span></span>
+          <span class="text-fg/40" aria-hidden="true">ⓘ</span>
         </div>
-        <div class="text-xl font-bold {ov_c['text']}">{ov_label}</div>
-        <div class="text-sm text-muted mt-1 leading-relaxed">{ov_comment}</div>
+        <div class="text-lg sm:text-xl font-bold {ov_c['text']}">{ov_label}</div>
+        <div class="text-xs sm:text-sm text-muted mt-1 leading-relaxed">{ov_comment}</div>
       </div>
-      <div class="grid grid-cols-4 gap-3 sm:gap-5 text-center shrink-0">
-        <div><div class="text-good font-bold text-xl">{good_n}</div><div class="text-muted text-xs mt-0.5">긍정</div></div>
-        <div><div class="text-muted font-bold text-xl">{neutral_n}</div><div class="text-muted text-xs mt-0.5">중립</div></div>
-        <div><div class="text-warn font-bold text-xl">{warn_n}</div><div class="text-muted text-xs mt-0.5">주의</div></div>
-        <div><div class="text-danger font-bold text-xl">{bad_n}</div><div class="text-muted text-xs mt-0.5">위험</div></div>
+      <div class="grid grid-cols-4 gap-2 sm:gap-5 text-center shrink-0 w-full sm:w-auto">
+        <div><div class="text-good font-bold text-lg sm:text-xl">{good_n}</div><div class="text-muted text-[10px] sm:text-xs mt-0.5">긍정</div></div>
+        <div><div class="text-muted font-bold text-lg sm:text-xl">{neutral_n}</div><div class="text-muted text-[10px] sm:text-xs mt-0.5">중립</div></div>
+        <div><div class="text-warn font-bold text-lg sm:text-xl">{warn_n}</div><div class="text-muted text-[10px] sm:text-xs mt-0.5">주의</div></div>
+        <div><div class="text-danger font-bold text-lg sm:text-xl">{bad_n}</div><div class="text-muted text-[10px] sm:text-xs mt-0.5">위험</div></div>
       </div>
     </div>
     <!-- 7개 컴포넌트 배지 — 각 클릭 시 해당 컴포넌트 모달 -->
-    <div class="mt-5 pt-5 border-t border-frame">
-      <div class="text-xs text-muted uppercase tracking-widest mb-3">판단 근거 — 7개 컴포넌트</div>
+    <div class="mt-4 sm:mt-5 pt-4 sm:pt-5 border-t border-frame">
+      <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-3">판단 근거 — 7개 컴포넌트</div>
       <div class="flex flex-wrap gap-2">
         {component_badges}
       </div>
-      <div class="text-xs text-muted mt-3">계산: 각 매수 +1·중립 0·주의 -1·위험 -2 합산 → 임계값 비교. 카드 빈 공간 클릭 시 방법론 상세.</div>
+      <div class="text-[11px] sm:text-xs text-muted mt-3 leading-relaxed">계산: 각 매수 +1·중립 0·주의 -1·위험 -2 합산 → 임계값 비교. 카드 빈 공간 클릭 시 방법론 상세.</div>
     </div>
   </div>
 
   <!-- 타이밍 신호 (종합 신호 구성 7개 지표) -->
-  <h2 class="text-xs font-semibold text-muted uppercase tracking-widest mb-3"><span aria-hidden="true">🎯</span> 타이밍 신호 <span class="normal-case font-normal opacity-60">(종합 신호 구성 7개 지표 — CNN F&amp;G·Goldman 모델 참고)</span></h2>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <h2 class="text-xs font-semibold text-muted uppercase tracking-widest mb-3"><span aria-hidden="true">🎯</span> 타이밍 신호 <span class="normal-case font-normal opacity-60 hidden sm:inline">(종합 신호 구성 7개 지표 — CNN F&amp;G·Goldman 모델 참고)</span></h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
     {fear_card}
     {vix_card}
     {ys_html}
@@ -1140,12 +1171,12 @@ def build_html(data, serve_mode=True):
   </div>
 
   <!-- 밸류에이션 & 참고 지표 -->
-  <div class="bg-frame/30 border border-frame/50 rounded-xl px-4 py-3 mb-3 flex items-start gap-2">
-    <span class="text-sm">💡</span>
+  <div class="bg-frame/30 border border-frame/50 rounded-xl px-3 sm:px-4 py-3 mb-3 flex items-start gap-2">
+    <span class="text-sm shrink-0" aria-hidden="true">💡</span>
     <p class="text-xs text-muted leading-relaxed">아래 지표는 <strong class="text-fg">장기 투자 맥락</strong>을 보여줘요. 주식이 역사적으로 비싼지 싼지 가늠하는 용도예요. 오늘 바로 사고팔 타이밍을 알려주는 신호가 아니라서 종합 신호 계산에는 포함하지 않아요.</p>
   </div>
   <h2 class="text-xs font-semibold text-muted uppercase tracking-widest mb-3"><span aria-hidden="true">💰</span> 밸류에이션 &amp; 참고 지표 <span class="normal-case font-normal opacity-60">(장기 맥락용)</span></h2>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
     {cape_card}
     {pe_card}
     {buff_card}
@@ -1155,18 +1186,18 @@ def build_html(data, serve_mode=True):
 
   <!-- 지수 & ETF -->
   <h2 class="text-xs font-semibold text-muted uppercase tracking-widest mb-3"><span aria-hidden="true">📈</span> 지수 &amp; ETF 현황</h2>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
     {idx_html}
   </div>
 
   <!-- 초보자 가이드 -->
   <h2 class="text-xs font-semibold text-muted uppercase tracking-widest mb-3"><span aria-hidden="true">📖</span> 초보자 용어 가이드</h2>
-  <div class="flex flex-col gap-2 mb-8">
+  <div class="flex flex-col gap-2 mb-6 sm:mb-8">
     {guide_html}
   </div>
 
   <!-- 푸터 -->
-  <div class="text-center text-xs text-muted border-t border-frame pt-6">
+  <div class="text-center text-xs text-muted border-t border-frame pt-6 leading-relaxed">
     <p>데이터 출처: CNN · multpl.com · Yahoo Finance · US Treasury</p>
     <p class="mt-1">이 대시보드는 참고용이며 투자 권유가 아닙니다. 투자 판단은 본인 책임이에요.</p>
   </div>
@@ -1176,34 +1207,34 @@ def build_html(data, serve_mode=True):
 <!-- 지표 상세 모달 -->
 <div id="indicator-modal" class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="bg-surface border border-frame rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" id="modal-card">
-    <div class="sticky top-0 bg-surface flex items-center justify-between p-5 border-b border-frame">
-      <h2 id="modal-title" class="text-xl font-bold text-fg"></h2>
-      <button id="modal-close" type="button" class="text-muted hover:text-fg text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-frame transition-colors shrink-0" aria-label="닫기">×</button>
+    <div class="sticky top-0 bg-surface flex items-center justify-between p-4 sm:p-5 border-b border-frame z-10">
+      <h2 id="modal-title" class="text-base sm:text-xl font-bold text-fg pr-2 min-w-0"></h2>
+      <button id="modal-close" type="button" class="text-muted hover:text-fg text-2xl leading-none w-10 h-10 flex items-center justify-center rounded-full hover:bg-frame transition-colors shrink-0" aria-label="닫기">×</button>
     </div>
-    <div class="p-5 flex flex-col gap-5">
-      <div id="modal-current-wrap" class="bg-frame/30 rounded-xl p-4 border border-frame">
-        <div class="text-xs text-muted uppercase tracking-widest mb-1">현재 수치</div>
-        <div id="modal-current" class="text-xl font-bold"></div>
+    <div class="p-4 sm:p-5 flex flex-col gap-4 sm:gap-5">
+      <div id="modal-current-wrap" class="bg-frame/30 rounded-xl p-3 sm:p-4 border border-frame">
+        <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-1">현재 수치</div>
+        <div id="modal-current" class="text-base sm:text-xl font-bold break-words"></div>
       </div>
       <div>
-        <div class="text-xs text-muted uppercase tracking-widest mb-2">이 지표가 뭔가요?</div>
+        <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-2">이 지표가 뭔가요?</div>
         <p id="modal-description" class="text-sm text-fg leading-relaxed"></p>
       </div>
       <div>
-        <div class="text-xs text-muted uppercase tracking-widest mb-2">어떻게 읽나요?</div>
+        <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-2">어떻게 읽나요?</div>
         <table class="w-full text-sm">
           <tbody id="modal-thresholds"></tbody>
         </table>
       </div>
       <div>
-        <div class="text-xs text-muted uppercase tracking-widest mb-2">⚠️ 주의사항</div>
+        <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-2">⚠️ 주의사항</div>
         <p id="modal-caveat" class="text-sm text-muted leading-relaxed"></p>
       </div>
       <div class="pt-3 border-t border-frame">
-        <div class="text-xs text-muted uppercase tracking-widest mb-2">검증 / 원본 데이터</div>
-        <a id="modal-source" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-sm text-good hover:underline break-all">
+        <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-2">검증 / 원본 데이터</div>
+        <a id="modal-source" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-sm text-good hover:underline break-all min-h-[36px]">
           <span id="modal-source-label"></span>
-          <span class="text-xs shrink-0">↗</span>
+          <span class="text-xs shrink-0" aria-hidden="true">↗</span>
         </a>
       </div>
     </div>
@@ -1224,7 +1255,7 @@ function openModal(key, currentText, sigKey) {{
   document.getElementById('modal-title').textContent = info.title;
   const cur = document.getElementById('modal-current');
   cur.textContent = currentText || '데이터 없음';
-  cur.className = 'text-xl font-bold ' + (SIG_TEXT[sigKey] || 'text-muted');
+  cur.className = 'text-base sm:text-xl font-bold break-words ' + (SIG_TEXT[sigKey] || 'text-muted');
   document.getElementById('modal-description').textContent = info.description;
   document.getElementById('modal-caveat').textContent = info.caveat;
   const src = document.getElementById('modal-source');
