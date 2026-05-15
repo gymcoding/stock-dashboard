@@ -14,7 +14,7 @@ if (!FRED_KEY) {
 async function fredLatest(seriesId: string): Promise<number | null> {
   try {
     const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_KEY}&file_type=json&sort_order=desc&limit=20`;
-    const r = await fetch(url);
+    const r = await fetch(url, { signal: AbortSignal.timeout(10_000) });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json() as { observations: Array<{ value: string; date: string }> };
     const valid = data.observations.find(o => o.value !== '.' && o.value);
@@ -38,6 +38,7 @@ async function fetchFearGreed(): Promise<Snapshot['fear_greed']> {
           'Referer': 'https://money.cnn.com/',
           'Origin': 'https://money.cnn.com',
         },
+        signal: AbortSignal.timeout(10_000),
       },
     );
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -48,7 +49,7 @@ async function fetchFearGreed(): Promise<Snapshot['fear_greed']> {
     };
   } catch (e) {
     console.error('  ⚠️  Fear & Greed 실패:', e instanceof Error ? e.message : e);
-    return { score: null, rating: 'N/A' };
+    return null;
   }
 }
 
