@@ -31,3 +31,13 @@ venv/
 .claude/
 CLAUDE.md
 TODO.md
+
+# Astro
+dist/
+.astro/
+
+# generated data snapshot
+src/data/latest.json
+
+# Node
+node_modules/
