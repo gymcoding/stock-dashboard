@@ -46,6 +46,19 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # techboost.dev는 Cloudflare Pages에서 서빙 — CF Pages는 git push에만 반응하므로
+      # cron 트리거 시 Deploy Hook으로 강제 리빌드. GH Pages 빌드와 병렬 실행.
+      - name: Trigger Cloudflare Pages rebuild
+        if: github.event_name != 'push'
+        env:
+          CF_DEPLOY_HOOK: ${{ secrets.CLOUDFLARE_PAGES_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$CF_DEPLOY_HOOK" ]; then
+            echo "::warning::CLOUDFLARE_PAGES_DEPLOY_HOOK secret이 비어있어요. Cloudflare Pages 리빌드 생략."
+            exit 0
+          fi
+          curl -sS -X POST -o /dev/null -w "HTTP %{http_code}\n" "$CF_DEPLOY_HOOK"
+
       # 정적 사이트 빌드 → _site/ (index.html + public/* 자동 포함)
       - name: Build static site
         env:
