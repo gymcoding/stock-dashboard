@@ -91,7 +91,10 @@ async function fetchDxy(): Promise<Snapshot['dxy']> {
   const closes = await yfCloses('DX-Y.NYB');
   if (!closes) return null;
   const value = Number(closes[closes.length - 1].toFixed(2));
-  if (closes.length < 200) return { value, above_ma200: false };
+  if (closes.length < 200) {
+    console.warn(`  ⚠️  DXY MA200 계산 불가 (${closes.length}일 < 200) — above_ma200=false 강제`);
+    return { value, above_ma200: false };
+  }
   const ma200 = closes.slice(-200).reduce((a, b) => a + b, 0) / 200;
   return { value, above_ma200: value > ma200 };
 }
