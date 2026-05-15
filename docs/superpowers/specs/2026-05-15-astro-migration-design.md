@@ -162,32 +162,42 @@ GH Actions (cron 07:37 KST | workflow_dispatch | push:main):
 
 ### 4.2 `latest.json` 스키마 (TypeScript 타입)
 
+> 필드명은 dashboard.py의 반환 키와 **1:1 동일**하게 유지(snake_case). 임의 리네이밍은 본 PR에서 제외 — UI 개편 시 일괄 처리.
+
 ```ts
 export type Snapshot = {
   generated_at: string;            // ISO 8601 UTC
-  fear_greed: { score: number; rating: string } | null;
+  fear_greed: { score: number | null; rating: string } | null;
   cape: number | null;
   sp500_pe: number | null;
-  buffett: { value: number; percent_of_gdp: number } | null;
+  buffett: number | null;          // dashboard.py:478 — Wilshire 5000 / GDP × 100 (단일 숫자)
   vix: number | null;
   dxy: { value: number; above_ma200: boolean } | null;
   usdkrw: number | null;
   yield_spread: { spread: number; y10: number; y3m: number } | null;
   hy_spread: number | null;
   tickers: TickerAnalysis[];
-  sp500_trend: 'above' | 'below' | null;
-  sp500_ma_cross: 'golden' | 'death' | null;
+  sp500_trend: boolean | null;     // SPY가 MA200 위면 true, 아래면 false (dashboard.py:1400)
+  sp500_trend_pct: number | null;  // MA200 대비 %, dashboard.py:1401에서 ma200_diff_pct 복사
+  sp500_ma_cross: MaCross;         // SPY 기준 (dashboard.py:1402)
 };
+
+export type MaCross = 'strong_bull' | 'bull' | 'bear' | 'strong_bear' | null;
 
 export type TickerAnalysis = {
   ticker: string;                  // SPY, QQQ, ^KS11, ^KQ11, TLT, GLD
   name: string;                    // 한글 표시명
-  price: number;
-  rsi: number | null;              // Wilder EMA, 14일
-  ma200: { value: number; above: boolean } | null;  // 200일 이상의 historical 데이터 필요, 미만이면 null
-  week52: { high: number; low: number; from_high_pct: number };
+  price_str: string;               // 이미 포맷된 문자열 ("$432.10" 또는 "2,650.32") — dashboard.py:618
+  change_pct: number | null;       // 전일 대비 % (소수점 2)
+  rsi: number | null;              // Wilder EMA 14일, 소수점 1
+  ma200_above: boolean | null;     // 200일선 위/아래 (데이터 200일 미만이면 null)
+  ma200_diff_pct: number | null;   // 200일선 대비 % (소수점 1)
+  ma_cross: MaCross;               // 50/200 MA 교차 상태
+  pos_52w: number | null;          // 52주 가격대 내 위치 0~100 (소수점 1)
 };
 ```
+
+`Snapshot.buffett`은 dashboard.py에서 단일 숫자 반환(`fetch_buffett_indicator():478`) — 객체 아님. FRED `GDP`로 분모 자동화하더라도 반환 형태는 동일하게 단일 percent 값 유지.
 
 ### 4.3 핵심 로직 보존
 
@@ -201,7 +211,7 @@ export type TickerAnalysis = {
   ```
   좌(0°)=공포, 우(180°)=탐욕. 인버트 금지(`CLAUDE.md`의 경고 동일 적용)
 - **신호 임계값·한글 문구**: `dashboard.py:241-336`의 `signal_color()` 분기를 1:1 이식. 새 작문 없음
-- **7-indicator 합산**: `overall_signal_from_data()`를 `computeComposite()`로 이식. `SCORE_MAP = { good: 1, neutral: 0, warn: -1, bad: -2 }`. 임계값 `≥+2 good, ≥0 neutral, ≥-3 warn, <-3 bad` 유지
+- **7-indicator 합산**: `overall_signal_from_data()`를 `computeComposite()`로 이식. `SCORE_MAP = { good: 1, neutral: 0, warn: -1, bad: -2 }`. **임계값 `≥+4 good, ≥0 neutral, ≥-5 warn, <-5 bad`** (dashboard.py:325-332, 7-indicator 기준 점수 범위 −14~+7). 이전 4-indicator 임계값(`≥+2/≥0/≥-3/<-3`)은 stale 정보로 사용 금지 — CLAUDE.md에 잘못 기재된 부분도 본 PR에서 함께 정정
 
 ### 4.4 watchlist (현재 그대로 유지)
 
@@ -220,7 +230,9 @@ const WATCHLIST: [string, string][] = [
 
 - 모든 fetcher: try/catch → `null` 반환 (현재 패턴 동일)
 - 재시도 없음 — 일 1회 cron, 다음 빌드에서 자연 복구
-- **CI 실패 기준**: `fear_greed`·`vix`·`yield_spread`·`sp500_trend` 중 2개 이상 null이면 `process.exit(1)` — 종합 신호 계산 불가능한 수준만 빌드 실패 처리
+- **7-indicator 부분 누락 정책**: 어느 한 지표가 null이면 `computeComposite()`에서 해당 항목을 **`neutral`(0점) 처리**하고 종합 신호 계산은 계속. 카드 UI는 "데이터 없음" 표시 (현재 dashboard.py 동작 동일)
+- **CI 실패 기준**: 핵심 4개(`fear_greed`·`vix`·`yield_spread`·`sp500_trend`) 중 **2개 이상** null이면 `process.exit(1)`. 나머지 3개(`ma_cross`·`hy_spread`·`dxy_trend`)는 null이어도 빌드 통과 — 위 neutral 처리로 흡수
+- 이 정책은 종합 신호의 코어 시그널이 유실되는 사고만 빌드 실패로 막고, 보조 지표 일시 누락은 그래도 사이트를 갱신해서 운영 단절을 방지
 
 ### 4.6 라이브러리·환경
 
@@ -278,6 +290,8 @@ const WATCHLIST: [string, string][] = [
 UI 프레임워크 없이 vanilla JS `<script is:inline>`로 처리. 각 카드의 `data-modal-trigger` 클릭 → `<dialog>.showModal()` + `data-*` 속성에서 제목·설명·임계값표·근거 URL 채움. 현재 `dashboard.html`의 동작 그대로.
 
 ### 5.4 Toss 다크 팔레트 (확정 안)
+
+> **토큰 리네이밍 작업 포함**: 현재 코드는 `text-danger`·`bg-danger/15`·`border-danger/30` 등 `danger` 키를 사용(`dashboard.py:34` `_CLS["bad"]` → `text-danger`). 본 PR에서 토큰을 **`danger` → `bad`로 일괄 치환**한다. 색상값도 `#f85149` → `#F04452`로 함께 변경. 호환성 별칭(`--color-danger`)은 두지 않음 — 단일 PR에서 완전 정리.
 
 ```css
 @import "tailwindcss";
@@ -348,11 +362,26 @@ sitemap은 `@astrojs/sitemap` 인티그레이션으로 자동 생성. 단일 페
 
 - 메커니즘: Slack Incoming Webhook URL (Bot Token 불필요)
 - 메시지: Block Kit attachment, 종합 신호 색상으로 컬러 사이드바
-  - Header: `📊 {composite.label}`
-  - Section: `{composite.comment}`
+  - Header: `📊 {composite.label}` (예: `📊 매수 유리`)
+  - Section: `{composite.comment}` (예: `전반적으로 긍정적인 신호예요. 장기 투자를 시작하기 좋은 환경이에요.`)
   - Section: 7개 지표 한 줄 요약
   - Context: 실패 데이터 있으면 알림, 없으면 ✅ 모든 데이터 정상
   - Actions: "대시보드 열기" 버튼 → techboost.dev
+
+**7개 지표 한 줄 포맷 (`format_kakao_summary()` `dashboard.py:376-419` 기준)**:
+
+```
+😱 공포·탐욕 32 (공포)
+📉 VIX 18.4 (정상)
+📈 10Y-3M +0.42 (정상)
+📏 S&P500 200일선 위 (↑2.1%)
+🔀 MA Cross strong_bull (강세 신호)
+💳 HY Spread 3.8 (정상)
+💵 DXY 200일선 위 (달러 강세)
+```
+
+각 라인은 `이모지 + 지표명 + 값 + (해석 한국어)` 패턴. 해석 한국어는 `signal_color()` 두 번째 반환값을 그대로 사용. 임계값별 한국어 문구는 dashboard.py에서 가져옴 — 새 작문 없음.
+
 - 발송 조건: `github.event_name != 'push' && success()` — cron/manual 성공 시에만, push 노이즈 제외
 
 ### 6.2 GitHub Actions 워크플로 (`.github/workflows/daily.yml`)
@@ -428,8 +457,10 @@ jobs:
 ### 6.4 CF Pages 대시보드 변경
 
 - 현재: git 연결 + 자체 빌드 중
-- 변경: 빌드 명령을 `echo "Skipping CF build — managed by GH Actions"` no-op로 변경 또는 git 연결 해제
-- Wrangler가 `dist/` 직접 업로드 — CF 측 빌드 불필요
+- **권장 변경 (배포 충돌 회피)**: CF Pages 대시보드 → 해당 프로젝트 → **Settings → Builds & deployments → Branch deployments → Production branch → "Disable Automatic Deployments"** 토글
+- 이렇게 해두면 Wrangler 업로드만 유효하고 git push에 의한 CF 자체 빌드는 발생하지 않음 — **두 경로가 동시에 실행되어 어느 배포가 최종이 될지 모호해지는 사고 방지**
+- 대안: git integration 자체를 제거해도 동일 효과(단 PR 미리보기를 나중에 다시 쓰려면 재연결 필요)
+- "빌드 명령을 no-op으로" 방식은 **권장하지 않음** — 빌드는 안 돼도 자동 배포 자체는 매번 트리거되어 Wrangler 업로드와 경합
 
 ---
 
