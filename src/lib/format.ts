@@ -1,6 +1,7 @@
 /** ISO UTC 문자열을 KST 표시 문자열(예: "2026-05-15 16:37")로 변환 */
 export function fmtKST(isoUtc: string): string {
   const d = new Date(isoUtc);
+  if (isNaN(d.getTime())) return '—';
   // KST는 UTC+9
   const kst = new Date(d.getTime() + 9 * 3600_000);
   const pad = (n: number) => String(n).padStart(2, '0');
