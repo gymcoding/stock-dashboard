@@ -6,7 +6,7 @@ import type { Snapshot, TickerAnalysis, MaCross } from '../src/lib/data';
 
 const FRED_KEY = process.env.FRED_API_KEY;
 if (!FRED_KEY) {
-  console.error('FRED_API_KEY 환경변수가 비어있습니다. .env 또는 GH Secrets 확인.');
+  console.error('FRED_API_KEY 환경변수가 설정되지 않았습니다.');
   process.exit(2);
 }
 
@@ -63,9 +63,12 @@ async function fetchFearGreed(): Promise<Snapshot['fear_greed']> {
     );
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json() as { fear_and_greed: { score: number; rating: string } };
+    const RATINGS = ['extreme fear', 'fear', 'neutral', 'greed', 'extreme greed'] as const;
+    const rawRating = String(data.fear_and_greed.rating ?? '').toLowerCase().trim();
+    const rating = (RATINGS as readonly string[]).includes(rawRating) ? rawRating : 'neutral';
     return {
       score: Math.round(data.fear_and_greed.score),
-      rating: data.fear_and_greed.rating,
+      rating,
     };
   } catch (e) {
     console.error('  ⚠️  Fear & Greed 실패:', e instanceof Error ? e.message : e);
@@ -316,6 +319,6 @@ async function main() {
 }
 
 main().catch(e => {
-  console.error('fatal:', e);
+  console.error('fatal:', e instanceof Error ? e.message : e);
   process.exit(1);
 });
