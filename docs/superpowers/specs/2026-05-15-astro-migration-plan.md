@@ -1906,6 +1906,8 @@ needleCoords(gauge.ts) 사용 — 0% 좌측/100% 우측 보존."
 
 `dashboard.html`의 모달 동작(?` 아이콘 클릭 → 지표 설명 출력)을 vanilla JS로 이식. 단 본 마이그레이션은 **UI 그대로 옮기는 게 목표**이므로 모달 콘텐츠 자체는 단순화하여 "임계값 표 + 출처 링크"만 표시. 풍부한 설명(현재 dashboard.py:90-240 `INDICATOR_DICT`)은 UI 개편 PR에서 다시 가져옴.
 
+> **구현 결정 (2026-05-16)**: 원본 plan 초안의 `<a id="modal-source">` 출처 링크와 `data-source`/`data-source-label` 속성은 **의도적으로 제외**함. 초안의 `data-source="https://example.com"`은 placeholder였고, AdSense 운영 사이트에 가짜 example.com 링크를 노출하는 것은 링크 부재보다 해로움. 실제 출처 URL을 포함한 풍부한 지표 설명(INDICATOR_DICT)은 spec §1.3·§10에 따라 UI 전면 개편 PR로 이연. 현재 모달은 "지표 설명 + 현재 값"만 표시.
+
 이 task에서는 우선 **모달 인프라만** 추가하고 콘텐츠는 후속.
 
 - [ ] **Step 1: 모달 DOM 추가**

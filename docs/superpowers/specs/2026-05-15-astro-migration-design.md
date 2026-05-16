@@ -69,7 +69,7 @@
 
 ### 2.3 FRED API
 
-- 매크로 시계열 풍부: `DGS10`(10Y), `DGS3MO`(3M), `DEXKOUS`(원달러), `WILL5000PRFC`(Wilshire 5000), `GDP`(분기), `BAMLH0A0HYM2`(HY spread)
+- 매크로 시계열 풍부: `DGS10`(10Y), `DGS3MO`(3M), `DEXKOUS`(원달러), `GDP`(분기), `BAMLH0A0HYM2`(HY spread). ⚠️ `WILL5000PRFC`는 2026-05-15 시점 discontinued — Wilshire 5000은 Yahoo `^W5000`로 대체 (§4.1 참조)
 - 분당 120 요청 — 일 1회 cron엔 무제한 수준
 - 무료 API 키 (이메일 등록만)
 - 미 연준 공식 인프라 — 가장 안정적
@@ -150,7 +150,7 @@ GH Actions (cron 07:37 KST | workflow_dispatch | push:main):
 | 10Y Treasury | FRED `DGS10` | |
 | 3M Treasury | FRED `DGS3MO` | Constant Maturity — 기존 `^IRX` Bank Discount 근사보다 정확 |
 | 원달러 환율 | FRED `DEXKOUS` | |
-| Wilshire 5000 | FRED `WILL5000PRFC` | 주간 시리즈 |
+| Wilshire 5000 | yahoo-finance2 `^W5000` | ⚠️ FRED `WILL5000PRFC`가 2026-05-15 시점 discontinued — Yahoo로 대체. dashboard.py 원본도 Yahoo 사용 |
 | US GDP | FRED `GDP` | 하드코딩 제거 — 분기 발표 자동 반영 |
 | HY Spread | FRED `BAMLH0A0HYM2` | 현 상태 유지 |
 | Dollar Index | yahoo-finance2 `DX-Y.NYB` | 6통화 ICE 지수 — FRED 대체 불가 |
@@ -488,7 +488,7 @@ jobs:
 | 리스크 | 영향 | 완화책 |
 |---|---|---|
 | yahoo-finance2 cookie/crumb 깨짐 | VIX·DXY·6 ETF 일시 null → 일부 카드 빈 값 | 매크로는 FRED로 이관해 단일 장애점 회피. 발생 시 라이브러리 패치 릴리스 대기 (1일 이내) |
-| `^W5000` 인덱스 데이터 누락 | Buffett 지표 null | FRED `WILL5000PRFC`로 대체 — 이미 본 설계에 반영 |
+| Yahoo `^W5000` 인덱스 데이터 누락 | Buffett 지표 null | 1차 fallback: 라이브러리 패치 대기 (~1일). 2차 fallback: dashboard.py 원본도 Yahoo만 사용했으므로 동일 위험 수용. FRED `WILL5000PRFC`는 2026-05-15 시점 discontinued로 불가 |
 | Toss 디자인 토큰 비공개 | 색상 미세 차이 | 일반 알려진 키 컬러로 초안, 시각 비교 후 미세조정 |
 | `^IRX` Bank Discount vs Constant Maturity | yield spread 정확도 | FRED `DGS3MO` Constant Maturity로 대체 — 이미 반영 (정확도 개선) |
 | AdSense 미승인 상태에서 스니펫 노출 | 영향 없음 (script만 무해) | client ID를 `PUBLIC_ADSENSE_CLIENT` env로 빼서 환경별 토글 |
