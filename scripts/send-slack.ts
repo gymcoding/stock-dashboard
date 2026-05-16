@@ -26,7 +26,7 @@ const EMOJI: Record<string, string> = {
 
 function fmtLine(label: string, value: string | number | null, sigKey: string, sigText: string): string {
   const v = value === null || value === undefined ? '—' : value;
-  return `${EMOJI[sigKey]} *${label}* ${v} (${sigText})`;
+  return `${EMOJI[sigKey]} *${label}* ${v} — ${sigText}`;
 }
 
 const fg = snap.fear_greed?.score ?? null;
@@ -80,17 +80,9 @@ const body = {
         type: 'context',
         elements: [{
           type: 'mrkdwn',
-          text: failed.length
+          text: (failed.length
             ? `⚠️ 일부 데이터 누락: ${failed.join(', ')}`
-            : '✅ 모든 핵심 데이터 정상',
-        }],
-      },
-      {
-        type: 'actions',
-        elements: [{
-          type: 'button',
-          text: { type: 'plain_text', text: '대시보드 열기' },
-          url: SITE_URL,
+            : '✅ 모든 핵심 데이터 정상') + `  ·  <${SITE_URL}|대시보드 열기 ↗>`,
         }],
       },
     ],
