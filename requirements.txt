@@ -1,6 +1,0 @@
-# M5: yfinance 1.2.0의 race condition 패턴을 _yf_lock으로 회피하므로 버전 고정 필수.
-# 신버전 자동 설치 시 동작 변경 가능 — 의도적 업그레이드 외 변경 금지.
-yfinance==1.2.0
-requests>=2.31,<3
-pandas>=2.0,<3
-lxml>=4.9
