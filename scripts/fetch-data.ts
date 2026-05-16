@@ -2,13 +2,22 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import YahooFinance from 'yahoo-finance2';
 import * as cheerio from 'cheerio';
-import type { Snapshot, TickerAnalysis } from '../src/lib/data';
+import type { Snapshot, TickerAnalysis, MaCross } from '../src/lib/data';
 
 const FRED_KEY = process.env.FRED_API_KEY;
 if (!FRED_KEY) {
   console.error('FRED_API_KEY 환경변수가 비어있습니다. .env 또는 GH Secrets 확인.');
   process.exit(2);
 }
+
+const WATCHLIST: [string, string][] = [
+  ['SPY',   'S&P 500 ETF'],
+  ['QQQ',   '나스닥 100 ETF'],
+  ['^KS11', 'KOSPI'],
+  ['^KQ11', 'KOSDAQ'],
+  ['TLT',   '미국 장기채 ETF'],
+  ['GLD',   '금 ETF'],
+];
 
 const yf = new YahooFinance();
 
@@ -80,6 +89,94 @@ async function yfCloses(symbol: string): Promise<number[] | null> {
     console.error(`  ⚠️  Yahoo ${symbol} 실패:`, e instanceof Error ? e.message : e);
     return null;
   }
+}
+
+/**
+ * Wilder EMA 14일 RSI. dashboard.py:580-585 이식.
+ *
+ *   delta = close.diff()
+ *   gain = delta.clip(lower=0).ewm(alpha=1/14, adjust=False).mean()
+ *   loss = (-delta.clip(upper=0)).ewm(alpha=1/14, adjust=False).mean()
+ *   rsi = 100 - 100/(1 + gain/loss)
+ */
+function rsi14(closes: number[]): number | null {
+  if (closes.length < 15) return null;
+  const alpha = 1 / 14;
+  let gainEma = 0;
+  let lossEma = 0;
+  for (let i = 1; i < closes.length; i++) {
+    const delta = closes[i] - closes[i - 1];
+    const gain = delta > 0 ? delta : 0;
+    const loss = delta < 0 ? -delta : 0;
+    if (i === 1) {
+      gainEma = gain;
+      lossEma = loss;
+    } else {
+      gainEma = alpha * gain + (1 - alpha) * gainEma;
+      lossEma = alpha * loss + (1 - alpha) * lossEma;
+    }
+  }
+  if (lossEma === 0) return 100;
+  const rs = gainEma / lossEma;
+  return Number((100 - 100 / (1 + rs)).toFixed(1));
+}
+
+function mean(arr: number[]): number {
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
+}
+
+async function analyzeTicker(ticker: string, name: string): Promise<TickerAnalysis> {
+  const closes = await yfCloses(ticker);
+  if (!closes || closes.length < 5) {
+    return {
+      ticker, name, price_str: 'N/A',
+      change_pct: null, rsi: null,
+      ma200_above: null, ma200_diff_pct: null,
+      ma_cross: null, pos_52w: null,
+    };
+  }
+
+  const price = closes[closes.length - 1];
+  const prev = closes[closes.length - 2];
+  const change_pct = Number((((price - prev) / prev) * 100).toFixed(2));
+
+  const rsi = rsi14(closes);
+
+  let ma200_above: boolean | null = null;
+  let ma200_diff_pct: number | null = null;
+  let ma200Val: number | null = null;
+  if (closes.length >= 200) {
+    ma200Val = mean(closes.slice(-200));
+    ma200_above = price > ma200Val;
+    ma200_diff_pct = Number((((price - ma200Val) / ma200Val) * 100).toFixed(1));
+  }
+
+  // MA50 + Golden/Death cross — dashboard.py:597-613 이식
+  let ma_cross: MaCross = null;
+  if (closes.length >= 200 && ma200Val !== null) {
+    const ma50 = mean(closes.slice(-50));
+    const above50 = price > ma50;
+    const above200 = price > ma200Val;
+    const goldenCross = ma50 > ma200Val;
+    if (above50 && above200 && goldenCross) ma_cross = 'strong_bull';
+    else if (above200 && goldenCross) ma_cross = 'bull';
+    else if (!above50 && !above200 && !goldenCross) ma_cross = 'strong_bear';
+    else ma_cross = 'bear';
+  }
+
+  // 52주 위치 (0~100%) — dashboard.py:615-617
+  const high = Math.max(...closes);
+  const low = Math.min(...closes);
+  const pos_52w = high !== low
+    ? Number((((price - low) / (high - low)) * 100).toFixed(1))
+    : 50;
+
+  const isKr = ticker === '^KS11' || ticker === '^KQ11';
+  const price_str = isKr
+    ? price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  return { ticker, name, price_str, change_pct, rsi, ma200_above, ma200_diff_pct, ma_cross, pos_52w };
 }
 
 async function fetchVix(): Promise<number | null> {
@@ -165,7 +262,15 @@ async function main() {
     ? Number(((wilshire / gdp) * 100).toFixed(1))
     : null;
 
-  // TODO: ticker analysis (Task 8)
+  const tickers = await Promise.all(
+    WATCHLIST.map(([t, n]) => analyzeTicker(t, n)),
+  );
+
+  const spy = tickers.find(t => t.ticker === 'SPY');
+  const sp500_trend = spy?.ma200_above ?? null;
+  const sp500_trend_pct = spy?.ma200_diff_pct ?? null;
+  const sp500_ma_cross = spy?.ma_cross ?? null;
+
   const snapshot: Snapshot = {
     generated_at: new Date().toISOString(),
     fear_greed: fearGreed,
@@ -177,18 +282,37 @@ async function main() {
     usdkrw: dexkous,
     yield_spread: yieldSpread,
     hy_spread: hySpread,
-    tickers: [],
-    sp500_trend: null,
-    sp500_trend_pct: null,
-    sp500_ma_cross: null,
+    tickers,
+    sp500_trend,
+    sp500_trend_pct,
+    sp500_ma_cross,
   };
 
   const out = 'src/data/latest.json';
   await mkdir(dirname(out), { recursive: true });
   await writeFile(out, JSON.stringify(snapshot, null, 2));
   console.log(`✓ ${out} 작성 완료`);
+
+  // 핵심 4개 지표 점검: 2개 이상 null이면 빌드 실패 (spec §4.5)
+  const core = {
+    fear_greed: fearGreed?.score,
+    vix,
+    yield_spread: yieldSpread?.spread,
+    sp500_trend,
+  };
+  const nullCount = Object.values(core).filter(v => v === null || v === undefined).length;
+  if (nullCount >= 2) {
+    console.error(`✗ 핵심 지표 ${nullCount}개 누락 — 빌드 중단`);
+    console.error('  null 필드:', Object.entries(core).filter(([_, v]) => v === null || v === undefined).map(([k]) => k));
+    process.exit(1);
+  }
+
   console.log(`  fear_greed=${fearGreed?.score ?? 'null'} | y10-y3m=${yieldSpread?.spread ?? 'null'} | hy=${hySpread ?? 'null'} | buffett=${buffett ?? 'null'} | usdkrw=${dexkous ?? 'null'}`);
   console.log(`  vix=${vix ?? 'null'} | dxy=${dxy?.value ?? 'null'}(${dxy?.above_ma200 ? '↑MA200' : '↓MA200'}) | cape=${cape ?? 'null'} | sp500pe=${sp500Pe ?? 'null'} | wilshire=${wilshire ?? 'null'}`);
+
+  for (const t of tickers) {
+    console.log(`  ${t.ticker.padEnd(6)} ${t.price_str.padStart(12)} | rsi=${t.rsi ?? 'null'} | MA200 ${t.ma200_above === null ? '?' : t.ma200_above ? '↑' : '↓'} (${t.ma200_diff_pct ?? '?'}%) | cross=${t.ma_cross ?? 'null'} | 52w=${t.pos_52w ?? 'null'}%`);
+  }
 }
 
 main().catch(e => {
