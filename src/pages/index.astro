@@ -7,6 +7,75 @@ import data from '../data/latest.json';
 const composite = computeComposite(data);
 const generatedKst = fmtKST(data.generated_at);
 
+import { signalColor } from '../lib/signal';
+import { fmtNumber, fmtPercent } from '../lib/format';
+
+type MacroCard = {
+  title: string;
+  value: string;
+  signal: 'good' | 'neutral' | 'warn' | 'bad';
+  detail: string;
+};
+
+const macros: MacroCard[] = [];
+
+// Fear & Greed
+{
+  const v = data.fear_greed?.score ?? null;
+  const [k, t] = signalColor('fear_greed', v);
+  macros.push({
+    title: '공포·탐욕 지수',
+    value: v !== null ? `${v} · ${data.fear_greed?.rating ?? ''}` : '—',
+    signal: k, detail: t,
+  });
+}
+// VIX
+{
+  const [k, t] = signalColor('vix', data.vix);
+  macros.push({ title: 'VIX', value: fmtNumber(data.vix, 2), signal: k, detail: t });
+}
+// CAPE
+{
+  const [k, t] = signalColor('cape', data.cape);
+  macros.push({ title: 'CAPE (Shiller P/E)', value: fmtNumber(data.cape, 1), signal: k, detail: t });
+}
+// S&P500 PER
+{
+  const [k, t] = signalColor('sp500pe', data.sp500_pe);
+  macros.push({ title: 'S&P500 PER', value: fmtNumber(data.sp500_pe, 1), signal: k, detail: t });
+}
+// Buffett Indicator
+{
+  const [k, t] = signalColor('buffett', data.buffett);
+  macros.push({ title: '버핏 지수', value: fmtPercent(data.buffett, 1), signal: k, detail: t });
+}
+// Yield Spread
+{
+  const v = data.yield_spread?.spread ?? null;
+  const [k, t] = signalColor('yield_spread', v);
+  macros.push({
+    title: '10Y-3M 금리차',
+    value: v !== null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}` : '—',
+    signal: k, detail: t,
+  });
+}
+// HY Spread
+{
+  const [k, t] = signalColor('hy_spread', data.hy_spread);
+  macros.push({ title: 'HY 회사채 스프레드', value: fmtPercent(data.hy_spread, 2), signal: k, detail: t });
+}
+// DXY
+{
+  const v = data.dxy?.value ?? null;
+  const [k, t] = signalColor('dxy', v);
+  macros.push({ title: '달러 인덱스 (DXY)', value: fmtNumber(v, 2), signal: k, detail: t });
+}
+// USDKRW
+{
+  const [k, t] = signalColor('usdkrw', data.usdkrw);
+  macros.push({ title: '원달러 환율', value: fmtNumber(data.usdkrw, 2), signal: k, detail: t });
+}
+
 const signalBg: Record<string, string> = {
   good:    'bg-good/15 border-good/30',
   neutral: 'bg-neutral/15 border-neutral/30',
@@ -51,7 +120,16 @@ const signalText: Record<string, string> = {
       </ul>
     </section>
 
-    <!-- 매크로 카드 그리드는 Task 13에서 추가 -->
+    <!-- ━━━━━━ 매크로 카드 ━━━━━━ -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+      {macros.map(c => (
+        <article class={`border rounded-xl p-4 ${signalBg[c.signal]}`}>
+          <h3 class="text-sm text-muted">{c.title}</h3>
+          <p class={`text-2xl font-semibold mt-1 ${signalText[c.signal]}`}>{c.value}</p>
+          <p class="text-xs text-muted mt-2">{c.detail}</p>
+        </article>
+      ))}
+    </section>
     <!-- ETF 카드 그리드는 Task 14에서 추가 -->
     <!-- 모달은 Task 15에서 추가 -->
 
