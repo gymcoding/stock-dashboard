@@ -85,6 +85,40 @@ const signalBg: Record<string, string> = {
 const signalText: Record<string, string> = {
   good: 'text-good', neutral: 'text-muted', warn: 'text-warn', bad: 'text-bad',
 };
+
+import { needleCoords } from '../lib/gauge';
+
+type EtfCard = {
+  ticker: string;
+  name: string;
+  price_str: string;
+  change_pct: number | null;
+  rsi: number | null;
+  rsiSignal: 'good' | 'neutral' | 'warn' | 'bad';
+  rsiText: string;
+  pos_52w: number | null;
+  needleX: number;
+  needleY: number;
+  ma200Above: boolean | null;
+  maDiffPct: number | null;
+};
+
+const etfs: EtfCard[] = data.tickers.map(t => {
+  const [rk, rt] = signalColor('rsi', t.rsi);
+  const { nx, ny } = needleCoords(t.pos_52w ?? 50);
+  return {
+    ticker: t.ticker,
+    name: t.name,
+    price_str: t.price_str,
+    change_pct: t.change_pct,
+    rsi: t.rsi,
+    rsiSignal: rk, rsiText: rt,
+    pos_52w: t.pos_52w,
+    needleX: nx, needleY: ny,
+    ma200Above: t.ma200_above,
+    maDiffPct: t.ma200_diff_pct,
+  };
+});
 ---
 <Base>
   <main class="mx-auto max-w-screen-lg px-4 py-6 sm:py-10">
@@ -130,7 +164,49 @@ const signalText: Record<string, string> = {
         </article>
       ))}
     </section>
-    <!-- ETF 카드 그리드는 Task 14에서 추가 -->
+    <!-- ━━━━━━ ETF 카드 ━━━━━━ -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {etfs.map(e => (
+        <article class="border border-border bg-surface rounded-xl p-4">
+          <div class="flex items-baseline justify-between gap-2">
+            <h3 class="text-sm text-muted">{e.name}</h3>
+            <span class="text-xs text-muted">{e.ticker}</span>
+          </div>
+          <p class="text-2xl font-semibold mt-1">{e.price_str}</p>
+          {e.change_pct !== null && (
+            <p class={`text-sm mt-1 ${e.change_pct >= 0 ? 'text-good' : 'text-bad'}`}>
+              {e.change_pct >= 0 ? '+' : ''}{e.change_pct.toFixed(2)}% (전일대비)
+            </p>
+          )}
+
+          {e.pos_52w !== null && (
+            <div class="mt-3">
+              <svg viewBox="0 0 160 100" class="w-full">
+                <path d="M 25 85 A 55 55 0 0 1 135 85" fill="none" stroke="var(--color-border)" stroke-width="10" />
+                <line x1="80" y1="85" x2={e.needleX} y2={e.needleY} stroke="var(--color-brand)" stroke-width="3" stroke-linecap="round" />
+                <circle cx="80" cy="85" r="4" fill="var(--color-brand)" />
+                <text x="80" y="98" text-anchor="middle" font-size="9" fill="var(--color-muted)">52주 위치 {e.pos_52w}%</text>
+              </svg>
+            </div>
+          )}
+
+          <dl class="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div class="bg-surface-hi rounded-md px-2 py-1.5">
+              <dt class="text-muted">RSI</dt>
+              <dd class={e.rsi !== null ? signalText[e.rsiSignal] : 'text-muted'}>
+                {e.rsi !== null ? `${e.rsi} · ${e.rsiText}` : '—'}
+              </dd>
+            </div>
+            <div class="bg-surface-hi rounded-md px-2 py-1.5">
+              <dt class="text-muted">MA200</dt>
+              <dd class={e.ma200Above === null ? 'text-muted' : e.ma200Above ? 'text-good' : 'text-bad'}>
+                {e.ma200Above === null ? '—' : e.ma200Above ? `↑ ${e.maDiffPct}%` : `↓ ${e.maDiffPct}%`}
+              </dd>
+            </div>
+          </dl>
+        </article>
+      ))}
+    </section>
     <!-- 모달은 Task 15에서 추가 -->
 
   </main>
