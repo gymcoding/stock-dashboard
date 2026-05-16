@@ -1,14 +1,11 @@
 ---
 import Base from '../layouts/Base.astro';
-import { computeComposite } from '../lib/signal';
-import { fmtKST } from '../lib/format';
+import { computeComposite, signalColor } from '../lib/signal';
+import { fmtKST, fmtNumber, fmtPercent } from '../lib/format';
 import data from '../data/latest.json';
 
 const composite = computeComposite(data);
 const generatedKst = fmtKST(data.generated_at);
-
-import { signalColor } from '../lib/signal';
-import { fmtNumber, fmtPercent } from '../lib/format';
 
 type MacroCard = {
   title: string;
