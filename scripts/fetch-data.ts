@@ -308,7 +308,7 @@ async function main() {
   }
 
   console.log(`  fear_greed=${fearGreed?.score ?? 'null'} | y10-y3m=${yieldSpread?.spread ?? 'null'} | hy=${hySpread ?? 'null'} | buffett=${buffett ?? 'null'} | usdkrw=${dexkous ?? 'null'}`);
-  console.log(`  vix=${vix ?? 'null'} | dxy=${dxy?.value ?? 'null'}(${dxy?.above_ma200 ? '↑MA200' : '↓MA200'}) | cape=${cape ?? 'null'} | sp500pe=${sp500Pe ?? 'null'} | wilshire=${wilshire ?? 'null'}`);
+  console.log(`  vix=${vix ?? 'null'} | dxy=${dxy?.value ?? 'null'}${dxy ? `(${dxy.above_ma200 ? '↑MA200' : '↓MA200'})` : ''} | cape=${cape ?? 'null'} | sp500pe=${sp500Pe ?? 'null'} | wilshire=${wilshire ?? 'null'}`);
 
   for (const t of tickers) {
     console.log(`  ${t.ticker.padEnd(6)} ${t.price_str.padStart(12)} | rsi=${t.rsi ?? 'null'} | MA200 ${t.ma200_above === null ? '?' : t.ma200_above ? '↑' : '↓'} (${t.ma200_diff_pct ?? '?'}%) | cross=${t.ma_cross ?? 'null'} | 52w=${t.pos_52w ?? 'null'}%`);
