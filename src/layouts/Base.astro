@@ -1,0 +1,58 @@
+---
+import "../styles/global.css";
+
+export interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "투자 지표 대시보드 | techboost.dev",
+  description = "S&P500·VIX·금리·환율 등 매크로 지표 일일 스냅샷. 매일 07:37 KST 자동 갱신.",
+} = Astro.props;
+
+const SITE_URL = 'https://techboost.dev';
+const ADSENSE_CLIENT = import.meta.env.PUBLIC_ADSENSE_CLIENT;  // 승인 후 .env에 설정
+const buildTime = new Date().toISOString();
+---
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={SITE_URL} />
+
+  <!-- OpenGraph (Slack/SNS 미리보기) -->
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={SITE_URL} />
+  <meta property="og:locale" content="ko_KR" />
+
+  <!-- 검색 허용 (AdSense 필수), AI 학습은 robots.txt로 차단 -->
+  <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large" />
+
+  <!-- Pretendard 가변 폰트 -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css"
+  />
+
+  {ADSENSE_CLIENT && (
+    <script
+      async
+      src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+      crossorigin="anonymous"
+    />
+  )}
+
+  <meta name="generator" content="Astro" />
+  <meta name="build-time" content={buildTime} />
+</head>
+<body class="bg-bg text-text">
+  <slot />
+</body>
+</html>
