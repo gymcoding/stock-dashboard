@@ -1,88 +1,59 @@
 name: daily-report
 
 on:
-  # 매일 07:37 KST (22:37 UTC 전날) — 정시 트래픽 피크 회피
   schedule:
-    - cron: '37 22 * * *'
-  # GitHub Actions UI에서 "Run workflow" 수동 트리거
+    - cron: '37 22 * * *'   # 07:37 KST
   workflow_dispatch: {}
-  # main 푸시 시 자동 재배포 (코드/UI 변경 즉시 반영)
   push:
     branches: [main]
     paths:
-      - 'dashboard.py'
+      - 'src/**'
       - 'scripts/**'
-      - 'requirements.txt'
+      - 'astro.config.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'public/**'
       - '.github/workflows/daily.yml'
 
-# B3: deploy-pages가 요구하는 권한
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
-# M8: 동시 실행 충돌 방지 (예: 수동 트리거 + cron 겹칠 때)
 concurrency:
-  group: pages
+  group: deploy-cf-pages
   cancel-in-progress: false
 
 jobs:
-  publish-and-notify:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          node-version: '22'
+          cache: 'npm'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - run: npm ci
 
-      # techboost.dev는 Cloudflare Pages에서 서빙 — CF Pages는 git push에만 반응하므로
-      # cron 트리거 시 Deploy Hook으로 강제 리빌드. GH Pages 빌드와 병렬 실행.
-      - name: Trigger Cloudflare Pages rebuild
-        if: github.event_name != 'push'
+      - name: Fetch external data → src/data/latest.json
         env:
-          CF_DEPLOY_HOOK: ${{ secrets.CLOUDFLARE_PAGES_DEPLOY_HOOK }}
-        run: |
-          if [ -z "$CF_DEPLOY_HOOK" ]; then
-            echo "::warning::CLOUDFLARE_PAGES_DEPLOY_HOOK secret이 비어있어요. Cloudflare Pages 리빌드 생략."
-            exit 0
-          fi
-          curl -sS -X POST -o /dev/null -w "HTTP %{http_code}\n" "$CF_DEPLOY_HOOK"
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: npx tsx scripts/fetch-data.ts
 
-      # 정적 사이트 빌드 → _site/ (index.html + public/* 자동 포함)
-      - name: Build static site
-        env:
-          CI: 'true'
-        run: python dashboard.py --static
+      - name: Astro build → dist/
+        run: npm run build
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
         with:
-          path: _site
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ vars.CF_PAGES_PROJECT }} --branch=main
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-      - name: Send Kakao daily report
-        # push 트리거(코드 변경 재배포)에서는 카카오 알림 제외 — schedule/수동 실행에서만 발송
-        if: github.event_name != 'push'
+      - name: Slack notify
+        if: github.event_name != 'push' && success()
         env:
-          KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
-          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
-          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SITE_URL: https://techboost.dev
-          # M1: refresh_token 회전 시 자동 Secret 갱신 (선택, GH_PAT 등록 시만 동작)
-          GH_PAT: ${{ secrets.GH_PAT }}
-          GH_REPO: ${{ github.repository }}
-        run: python scripts/send_kakao.py
+        run: npx tsx scripts/send-slack.ts
