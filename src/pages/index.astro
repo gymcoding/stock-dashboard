@@ -121,9 +121,16 @@ const etfs: EtfCard[] = data.tickers.map(t => {
   <main class="mx-auto max-w-screen-lg px-4 py-6 sm:py-10">
 
     <!-- ━━━━━━ 헤더 ━━━━━━ -->
-    <header class="mb-8">
-      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">투자 지표 대시보드</h1>
-      <p class="text-sm text-muted mt-2">최종 업데이트: {generatedKst} KST</p>
+    <header class="mb-8 flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">투자 지표 대시보드</h1>
+        <p class="text-sm text-muted mt-2">최종 업데이트: {generatedKst} KST</p>
+      </div>
+      <button id="theme-toggle" type="button" aria-label="다크/라이트 모드 전환"
+        class="shrink-0 rounded-full p-2 text-muted hover:text-text hover:bg-surface-hi transition">
+        <span class="dark-icon">☀️</span>
+        <span class="light-icon">🌙</span>
+      </button>
     </header>
 
     <!-- ━━━━━━ 종합 신호 ━━━━━━ -->
@@ -242,5 +249,15 @@ const etfs: EtfCard[] = data.tickers.map(t => {
         if (e.target === dlg) dlg.close();
       });
     })();
+  </script>
+
+  <script is:inline>
+    document.getElementById('theme-toggle')?.addEventListener('click', function () {
+      var html = document.documentElement;
+      var toLight = !html.classList.contains('light');
+      html.classList.toggle('light', toLight);
+      html.classList.toggle('dark', !toLight);
+      try { localStorage.setItem('theme', toLight ? 'light' : 'dark'); } catch (e) {}
+    });
   </script>
 </Base>
