@@ -19,6 +19,16 @@ const buildTime = new Date().toISOString();
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
+  <script is:inline>
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        document.documentElement.classList.add(t === 'light' ? 'light' : 'dark');
+      } catch (e) {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{title}</title>
   <meta name="description" content={description} />
@@ -52,7 +62,7 @@ const buildTime = new Date().toISOString();
   <meta name="generator" content="Astro" />
   <meta name="build-time" content={buildTime} />
 </head>
-<body class="bg-bg text-text">
+<body>
   <slot />
 </body>
 </html>
