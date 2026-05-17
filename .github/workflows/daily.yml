@@ -49,7 +49,10 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=${{ vars.CF_PAGES_PROJECT }} --branch=main
+          # --commit-message를 SHA로 고정: git 커밋 메시지의 이모지/멀티바이트가
+          # CF Pages deployment API에서 거부(code 8000111)되는 문제 영구 차단.
+          # --commit-dirty: 빌드로 생성된 latest.json 등 미커밋 변경 경고 silence.
+          command: pages deploy dist --project-name=${{ vars.CF_PAGES_PROJECT }} --branch=main --commit-message=${{ github.sha }} --commit-dirty=true
 
       - name: Slack notify
         if: github.event_name != 'push' && success()
