@@ -18,6 +18,7 @@
 }
 
 :root, .dark {
+  color-scheme: dark;
   --c-bg: rgb(18 20 14);
   --c-surface: rgb(30 32 26);
   --c-surface-hi: rgb(40 43 36);
@@ -32,6 +33,7 @@
 }
 
 .light {
+  color-scheme: light;
   --c-bg: rgb(249 250 239);
   --c-surface: rgb(238 239 227);
   --c-surface-hi: rgb(232 233 222);
