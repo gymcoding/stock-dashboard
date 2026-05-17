@@ -255,8 +255,8 @@ const etfs: EtfCard[] = data.tickers.map(t => {
     document.getElementById('theme-toggle')?.addEventListener('click', function () {
       var html = document.documentElement;
       var toLight = !html.classList.contains('light');
-      html.classList.remove('dark', 'light');
-      html.classList.add(toLight ? 'light' : 'dark');
+      html.classList.toggle('light', toLight);
+      html.classList.toggle('dark', !toLight);
       try { localStorage.setItem('theme', toLight ? 'light' : 'dark'); } catch (e) {}
     });
   </script>
