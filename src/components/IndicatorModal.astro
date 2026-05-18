@@ -48,10 +48,7 @@ import { INDICATOR_INFO } from '../lib/indicator-info';
   const elClose = document.getElementById('modal-close');
 
   if (dlg && elTitle && elCurrent && elDesc && elTbody && elCaveat && elSource && elClose) {
-    document.addEventListener('click', e => {
-      const target = e.target as Element | null;
-      const trigger = target?.closest('[data-indicator]');
-      if (!trigger) return;
+    function openFor(trigger: Element) {
       const key = trigger.getAttribute('data-indicator') || '';
       const info = INDICATOR_INFO[key];
       if (!info) return;
@@ -77,6 +74,23 @@ import { INDICATOR_INFO } from '../lib/indicator-info';
         elTbody.appendChild(tr);
       }
       dlg.showModal();
+    }
+
+    document.addEventListener('click', e => {
+      const trigger = (e.target as Element | null)?.closest('[data-indicator]');
+      if (trigger) openFor(trigger);
+    });
+    // 키보드 접근성: role="button" 트리거(div/article/section)는 Space/Enter로 click이
+    // 발생하지 않으므로 keydown을 직접 처리. 네이티브 <button> 배지는 click으로 충분.
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const el = e.target as Element | null;
+      if (!el || el.tagName === 'BUTTON' || el.tagName === 'A') return;
+      const trigger = el.closest('[data-indicator]');
+      if (trigger) {
+        e.preventDefault();
+        openFor(trigger);
+      }
     });
 
     elClose.addEventListener('click', () => dlg.close());
