@@ -6,14 +6,15 @@ interface Props {
   points: RatePoint[];
   unit?: string;
   decimals?: number;
+  label?: string;
 }
-const { points, unit = '', decimals = 2 } = Astro.props;
+const { points, unit = '', decimals = 2, label = '' } = Astro.props;
 const fmt = (v: number) => `${v.toFixed(decimals)}${unit}`;
 const geom = buildLineChart(points, fmt);
 ---
 {geom ? (
   <svg viewBox={`0 0 ${geom.width} ${geom.height}`} role="img"
-       class="w-full h-auto" preserveAspectRatio="none">
+       aria-label={label || '추이 차트'} class="w-full h-auto">
     {geom.yTicks.map(t => (
       <>
         <line x1="8" x2={geom.width - 56} y1={t.y} y2={t.y}

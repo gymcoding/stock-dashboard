@@ -3,20 +3,20 @@ import { loadHistory } from '../lib/history';
 import LineChart from './LineChart.astro';
 import type { RateSeriesId } from '../lib/data';
 
-const META: Record<RateSeriesId, { unit: string; decimals: number }> = {
-  dgs10:        { unit: '%',  decimals: 2 },
-  dgs3mo:       { unit: '%',  decimals: 2 },
-  yield_spread: { unit: '%p', decimals: 2 },
-  hy_spread:    { unit: '%p', decimals: 2 },
-  usdkrw:       { unit: '원', decimals: 2 },
-  fedfunds:     { unit: '%',  decimals: 2 },
+const META: Record<RateSeriesId, { unit: string; decimals: number; name: string }> = {
+  dgs10:        { unit: '%',  decimals: 2, name: '미국 10년물 국채 금리' },
+  dgs3mo:       { unit: '%',  decimals: 2, name: '미국 3개월물 국채 금리' },
+  yield_spread: { unit: '%p', decimals: 2, name: '장단기 금리차 (10Y-3M)' },
+  hy_spread:    { unit: '%p', decimals: 2, name: '하이일드 스프레드' },
+  usdkrw:       { unit: '원', decimals: 2, name: '원/달러 환율' },
+  fedfunds:     { unit: '%',  decimals: 2, name: '미국 연준 기준금리' },
 };
 
 interface Props { id: RateSeriesId; }
 const { id } = Astro.props;
 const points = loadHistory()[id] ?? [];
-const { unit, decimals } = META[id];
+const { unit, decimals, name } = META[id];
 ---
 <figure class="my-6 bg-surface/60 border border-border rounded-xl p-3 sm:p-4">
-  <LineChart points={points} unit={unit} decimals={decimals} />
+  <LineChart points={points} unit={unit} decimals={decimals} label={`${name} 15년 추이`} />
 </figure>
