@@ -71,7 +71,7 @@ export const INDICATOR_INFO: Record<string, IndicatorInfo> = {
       '본 대시보드는 FRED DGS10−DGS3MO(둘 다 Constant Maturity)를 사용해요. 기존 yfinance ^IRX(Bank Discount 방식) 근사보다 정확해요.',
     sourceUrl: 'https://fred.stlouisfed.org/series/T10Y3M',
     sourceLabel: 'FRED — 10-Year minus 3-Month Treasury Spread',
-    learnHref: '/learn/interest-rates',
+    learnHref: '/learn/interest-rates/',
   },
   ma200: {
     title: 'S&P500 200일 이동평균 추세',
@@ -191,7 +191,7 @@ export const INDICATOR_INFO: Record<string, IndicatorInfo> = {
       '역사상 5% 이상 = 시장 우려, 7%+ = 침체/위기 (2008년 21.8%, 2020년 3월 11%까지 급등). S&P500과 강한 역상관 관계.',
     sourceUrl: 'https://fred.stlouisfed.org/series/BAMLH0A0HYM2',
     sourceLabel: 'FRED — ICE BofA US HY OAS',
-    learnHref: '/learn/interest-rates',
+    learnHref: '/learn/interest-rates/',
   },
   ma_cross: {
     title: 'S&P500 추세 강도 (50/200일선)',
