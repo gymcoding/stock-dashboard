@@ -350,6 +350,7 @@ async function main() {
     const ys = deriveYieldSpread(h10, h3m);
     if (ys) history.yield_spread = ys;
     const hOut = 'src/data/history.json';
+    await mkdir(dirname(hOut), { recursive: true });
     await writeFile(hOut, JSON.stringify(history));
     console.log(`✓ ${hOut} 작성 완료 (${Object.keys(history).length}/6 시리즈)`);
   } catch (e) {
