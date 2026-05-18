@@ -55,3 +55,16 @@ html, body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
+
+#indicator-modal {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+#indicator-modal[open] {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+}
+#indicator-modal::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}

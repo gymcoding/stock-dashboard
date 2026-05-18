@@ -1,0 +1,87 @@
+---
+import { INDICATOR_INFO } from '../lib/indicator-info';
+---
+<dialog id="indicator-modal" class="border border-border rounded-2xl p-0 max-w-2xl w-[92vw] max-h-[90vh]">
+  <div class="sticky top-0 bg-surface flex items-center justify-between p-4 sm:p-5 border-b border-border">
+    <h2 id="modal-title" class="text-base sm:text-xl font-bold text-text pr-2 min-w-0"></h2>
+    <button id="modal-close" type="button" aria-label="닫기"
+      class="text-muted hover:text-text text-2xl leading-none w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-hi transition shrink-0">×</button>
+  </div>
+  <div class="p-4 sm:p-5 flex flex-col gap-4 overflow-y-auto">
+    <div class="bg-surface-hi rounded-xl p-3 sm:p-4 border border-border">
+      <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-1">현재 수치</div>
+      <div id="modal-current" class="text-base sm:text-xl font-bold break-words text-text"></div>
+    </div>
+    <div>
+      <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-2">이 지표가 뭔가요?</div>
+      <p id="modal-description" class="text-sm text-text leading-relaxed"></p>
+    </div>
+    <div>
+      <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-2">어떻게 읽나요?</div>
+      <table class="w-full text-sm">
+        <tbody id="modal-thresholds"></tbody>
+      </table>
+    </div>
+    <div>
+      <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-2">⚠️ 주의사항</div>
+      <p id="modal-caveat" class="text-sm text-muted leading-relaxed"></p>
+    </div>
+    <div class="pt-3 border-t border-border">
+      <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-2">검증 / 원본 데이터</div>
+      <a id="modal-source" target="_blank" rel="noopener noreferrer"
+        class="inline-flex items-center gap-2 text-sm text-good hover:underline break-all min-h-[36px]"></a>
+    </div>
+  </div>
+</dialog>
+
+<script>
+  import { INDICATOR_INFO } from '../lib/indicator-info';
+  import { signalText } from '../lib/signal-style';
+
+  const dlg = document.getElementById('indicator-modal') as HTMLDialogElement | null;
+  const elTitle = document.getElementById('modal-title');
+  const elCurrent = document.getElementById('modal-current');
+  const elDesc = document.getElementById('modal-description');
+  const elTbody = document.getElementById('modal-thresholds');
+  const elCaveat = document.getElementById('modal-caveat');
+  const elSource = document.getElementById('modal-source') as HTMLAnchorElement | null;
+  const elClose = document.getElementById('modal-close');
+
+  if (dlg && elTitle && elCurrent && elDesc && elTbody && elCaveat && elSource && elClose) {
+    document.addEventListener('click', e => {
+      const target = e.target as Element | null;
+      const trigger = target?.closest('[data-indicator]');
+      if (!trigger) return;
+      const key = trigger.getAttribute('data-indicator') || '';
+      const info = INDICATOR_INFO[key];
+      if (!info) return;
+
+      elTitle.textContent = info.title;
+      elCurrent.textContent = trigger.getAttribute('data-current') || '—';
+      elDesc.textContent = info.description;
+      elCaveat.textContent = info.caveat;
+      elSource.textContent = info.sourceLabel;
+      elSource.href = info.sourceUrl;
+
+      elTbody.textContent = '';
+      for (const t of info.thresholds) {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-border last:border-0';
+        const tdR = document.createElement('td');
+        tdR.className = 'py-2 pr-3 font-mono text-muted whitespace-nowrap align-top';
+        tdR.textContent = t.range;
+        const tdL = document.createElement('td');
+        tdL.className = `py-2 ${signalText[t.sig]}`;
+        tdL.textContent = t.label;
+        tr.append(tdR, tdL);
+        elTbody.appendChild(tr);
+      }
+      dlg.showModal();
+    });
+
+    elClose.addEventListener('click', () => dlg.close());
+    dlg.addEventListener('click', e => {
+      if (e.target === dlg) dlg.close();
+    });
+  }
+</script>
