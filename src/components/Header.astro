@@ -15,9 +15,15 @@ const { generatedKst } = Astro.props;
       최종 업데이트: {generatedKst} KST
     </p>
   </div>
-  <button id="theme-toggle" type="button" aria-label="다크/라이트 모드 전환"
-    class="shrink-0 rounded-full p-2 text-muted hover:text-text hover:bg-surface-hi transition">
-    <span class="dark-icon">☀️</span>
-    <span class="light-icon">🌙</span>
-  </button>
+  <div class="flex items-center gap-1 shrink-0">
+    <a href="/learn"
+      class="rounded-full px-3 py-2 text-sm text-muted hover:text-text hover:bg-surface-hi transition">
+      📖 학습
+    </a>
+    <button id="theme-toggle" type="button" aria-label="다크/라이트 모드 전환"
+      class="rounded-full p-2 text-muted hover:text-text hover:bg-surface-hi transition">
+      <span class="dark-icon">☀️</span>
+      <span class="light-icon">🌙</span>
+    </button>
+  </div>
 </header>

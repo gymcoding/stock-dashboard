@@ -30,6 +30,9 @@
       <a id="modal-source" target="_blank" rel="noopener noreferrer"
         class="inline-flex items-center gap-2 text-sm text-good hover:underline break-all min-h-[36px]"></a>
     </div>
+    <a id="modal-learn" class="hidden text-sm text-good hover:underline font-medium">
+      📖 이 지표 자세히 알아보기 →
+    </a>
   </div>
 </dialog>
 
@@ -45,8 +48,9 @@
   const elCaveat = document.getElementById('modal-caveat');
   const elSource = document.getElementById('modal-source') as HTMLAnchorElement | null;
   const elClose = document.getElementById('modal-close');
+  const elLearn = document.getElementById('modal-learn') as HTMLAnchorElement | null;
 
-  if (dlg && elTitle && elCurrent && elDesc && elTbody && elCaveat && elSource && elClose) {
+  if (dlg && elTitle && elCurrent && elDesc && elTbody && elCaveat && elSource && elClose && elLearn) {
     function openFor(trigger: Element) {
       const key = trigger.getAttribute('data-indicator') || '';
       const info = INDICATOR_INFO[key];
@@ -58,6 +62,13 @@
       elCaveat.textContent = info.caveat;
       elSource.textContent = info.sourceLabel;
       elSource.href = info.sourceUrl;
+      if (info.learnHref) {
+        elLearn.href = info.learnHref;
+        elLearn.classList.remove('hidden');
+      } else {
+        elLearn.removeAttribute('href');
+        elLearn.classList.add('hidden');
+      }
 
       elTbody.textContent = '';
       for (const t of info.thresholds) {
