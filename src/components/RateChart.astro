@@ -17,6 +17,6 @@ const { id } = Astro.props;
 const points = loadHistory()[id] ?? [];
 const { unit, decimals, name } = META[id];
 ---
-<figure class="my-6 bg-surface/60 border border-border rounded-xl p-3 sm:p-4">
+<figure class="not-prose my-6 bg-surface/60 border border-border rounded-xl p-3 sm:p-4">
   <LineChart points={points} unit={unit} decimals={decimals} label={`${name} 15년 추이`} />
 </figure>
