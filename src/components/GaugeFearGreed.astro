@@ -1,0 +1,31 @@
+---
+import { needleCoords } from '../lib/gauge';
+
+interface Props {
+  score: number | null;
+}
+const { score } = Astro.props;
+const { nx, ny } = needleCoords(score ?? 50);
+---
+<div class="border border-border bg-surface rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center gap-2">
+  <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest">공포 & 탐욕 게이지</div>
+  {score === null ? (
+    <div class="h-20 flex items-center justify-center text-muted text-sm">데이터 없음</div>
+  ) : (
+    <svg viewBox="0 0 160 110" class="w-full max-w-[240px]" role="img" aria-label={`공포탐욕지수 게이지: 현재 ${score}점`}>
+      <defs>
+        <linearGradient id="fg-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="var(--color-bad)" />
+          <stop offset="50%" stop-color="var(--color-warn)" />
+          <stop offset="100%" stop-color="var(--color-good)" />
+        </linearGradient>
+      </defs>
+      <path d="M 25 85 A 55 55 0 0 1 135 85" fill="none" stroke="url(#fg-grad)" stroke-width="10" stroke-linecap="round" />
+      <line x1="80" y1="85" x2={nx} y2={ny} stroke="var(--color-text)" stroke-width="3" stroke-linecap="round" />
+      <circle cx="80" cy="85" r="4" fill="var(--color-text)" />
+      <text x="25" y="100" text-anchor="middle" font-size="9" fill="var(--color-muted)">공포</text>
+      <text x="80" y="105" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--color-text)">{score}</text>
+      <text x="135" y="100" text-anchor="middle" font-size="9" fill="var(--color-muted)">탐욕</text>
+    </svg>
+  )}
+</div>
