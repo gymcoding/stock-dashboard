@@ -9,8 +9,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "fetch:data": "tsx scripts/fetch-data.ts",
-    "notify:slack": "tsx scripts/send-slack.ts"
+    "fetch:data": "tsx --env-file-if-exists=.env scripts/fetch-data.ts",
+    "notify:slack": "tsx --env-file-if-exists=.env scripts/send-slack.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
