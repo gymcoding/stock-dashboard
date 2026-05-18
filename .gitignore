@@ -38,6 +38,7 @@ dist/
 
 # generated data snapshot
 src/data/latest.json
+src/data/history.json
 
 # Node
 node_modules/

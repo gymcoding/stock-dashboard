@@ -2,7 +2,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import YahooFinance from 'yahoo-finance2';
 import * as cheerio from 'cheerio';
-import type { Snapshot, TickerAnalysis, MaCross } from '../src/lib/data';
+import type { Snapshot, TickerAnalysis, MaCross, RateHistory, RatePoint } from '../src/lib/data';
 
 const FRED_KEY = process.env.FRED_API_KEY;
 if (!FRED_KEY) {
@@ -43,6 +43,41 @@ async function fredLatest(seriesId: string): Promise<number | null> {
     console.error(`  ⚠️  FRED ${seriesId} 실패:`, e instanceof Error ? e.message : e);
     return null;
   }
+}
+
+// ────────────────────────────────────────────────────────────
+// FRED: 과거 시계열 전체 (sort_order=asc, observation_start)
+// ────────────────────────────────────────────────────────────
+async function fredSeries(seriesId: string, start: string): Promise<RatePoint[] | null> {
+  try {
+    const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_KEY}&file_type=json&sort_order=asc&observation_start=${start}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json() as { observations: Array<{ date: string; value: string }> };
+    const points: RatePoint[] = data.observations
+      .filter(o => o.value !== '.' && o.value !== '')
+      .map(o => ({ date: o.date, value: Number(o.value) }))
+      .filter(p => Number.isFinite(p.value));
+    return points.length ? points : null;
+  } catch (e) {
+    console.error(`  ⚠️  FRED series ${seriesId} 실패:`, e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+// DGS10 − DGS3MO 를 같은 날짜끼리 매칭해 장단기 금리차 시계열 생성
+function deriveYieldSpread(
+  y10: RatePoint[] | null,
+  y3m: RatePoint[] | null,
+): RatePoint[] | null {
+  if (!y10 || !y3m) return null;
+  const m = new Map(y3m.map(p => [p.date, p.value]));
+  const out: RatePoint[] = [];
+  for (const p of y10) {
+    const v3 = m.get(p.date);
+    if (v3 !== undefined) out.push({ date: p.date, value: Number((p.value - v3).toFixed(2)) });
+  }
+  return out.length ? out : null;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -295,6 +330,31 @@ async function main() {
   await mkdir(dirname(out), { recursive: true });
   await writeFile(out, JSON.stringify(snapshot, null, 2));
   console.log(`✓ ${out} 작성 완료`);
+
+  // ── 금리 히스토리 (비치명적: 실패해도 빌드 진행) ──
+  try {
+    const start = `${new Date().getFullYear() - 15}-01-01`;
+    const [h10, h3m, hHy, hKrw, hFf] = await Promise.all([
+      fredSeries('DGS10', start),
+      fredSeries('DGS3MO', start),
+      fredSeries('BAMLH0A0HYM2', start),
+      fredSeries('DEXKOUS', start),
+      fredSeries('FEDFUNDS', start),
+    ]);
+    const history: RateHistory = {};
+    if (h10) history.dgs10 = h10;
+    if (h3m) history.dgs3mo = h3m;
+    if (hHy) history.hy_spread = hHy;
+    if (hKrw) history.usdkrw = hKrw;
+    if (hFf) history.fedfunds = hFf;
+    const ys = deriveYieldSpread(h10, h3m);
+    if (ys) history.yield_spread = ys;
+    const hOut = 'src/data/history.json';
+    await writeFile(hOut, JSON.stringify(history));
+    console.log(`✓ ${hOut} 작성 완료 (${Object.keys(history).length}/6 시리즈)`);
+  } catch (e) {
+    console.error('  ⚠️  history.json 생성 실패 (빌드는 계속):', e instanceof Error ? e.message : e);
+  }
 
   // 핵심 4개 지표 점검: 2개 이상 null이면 빌드 실패 (spec §4.5)
   const core = {
