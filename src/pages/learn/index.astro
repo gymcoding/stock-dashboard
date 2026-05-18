@@ -1,0 +1,28 @@
+---
+import { getCollection } from 'astro:content';
+import Learn from '../../layouts/Learn.astro';
+
+const entries = (await getCollection('learn')).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+const canonical = new URL('/learn/', Astro.site).href;
+---
+<Learn
+  title="투자 지표 학습 | techboost.dev"
+  description="금리·변동성·환율 등 투자 지표를 초보 눈높이로 풀어주는 학습 글 모음."
+  canonical={canonical}
+>
+  <h1 class="text-2xl sm:text-3xl font-bold tracking-tight mb-2">📖 투자 지표 학습</h1>
+  <p class="text-sm text-muted mb-8">대시보드 숫자를 제대로 이해하고 싶을 때 — 초보 눈높이 딥다이브.</p>
+  <ul class="grid gap-4">
+    {entries.map(e => (
+      <li>
+        <a href={`/learn/${e.id}`}
+           class="block bg-surface/60 border border-border rounded-xl p-4 sm:p-5 hover:bg-surface-hi transition">
+          <h2 class="text-base sm:text-lg font-bold text-text">{e.data.title}</h2>
+          <p class="text-sm text-muted mt-1">{e.data.summary}</p>
+        </a>
+      </li>
+    ))}
+  </ul>
+</Learn>

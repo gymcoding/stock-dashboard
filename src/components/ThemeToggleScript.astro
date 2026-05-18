@@ -1,0 +1,9 @@
+<script is:inline>
+  document.getElementById('theme-toggle')?.addEventListener('click', function () {
+    var html = document.documentElement;
+    var toLight = !html.classList.contains('light');
+    html.classList.toggle('light', toLight);
+    html.classList.toggle('dark', !toLight);
+    try { localStorage.setItem('theme', toLight ? 'light' : 'dark'); } catch (e) {}
+  });
+</script>

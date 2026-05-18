@@ -13,6 +13,7 @@ import EtfCard from '../components/EtfCard.astro';
 import Glossary from '../components/Glossary.astro';
 import Footer from '../components/Footer.astro';
 import IndicatorModal from '../components/IndicatorModal.astro';
+import ThemeToggleScript from '../components/ThemeToggleScript.astro';
 
 const composite = computeComposite(data);
 const generatedKst = fmtKST(data.generated_at);
@@ -140,13 +141,5 @@ const etfs = data.tickers.map(tk => {
 
   <IndicatorModal />
 
-  <script is:inline>
-    document.getElementById('theme-toggle')?.addEventListener('click', function () {
-      var html = document.documentElement;
-      var toLight = !html.classList.contains('light');
-      html.classList.toggle('light', toLight);
-      html.classList.toggle('dark', !toLight);
-      try { localStorage.setItem('theme', toLight ? 'light' : 'dark'); } catch (e) {}
-    });
-  </script>
+  <ThemeToggleScript />
 </Base>

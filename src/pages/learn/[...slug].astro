@@ -1,0 +1,34 @@
+---
+import { getCollection, render } from 'astro:content';
+import Learn from '../../layouts/Learn.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('learn');
+  return entries.map(entry => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const canonical = new URL(`/learn/${entry.id}/`, Astro.site).href;
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'LearningResource',
+  name: entry.data.title,
+  description: entry.data.description,
+  url: canonical,
+  inLanguage: 'ko',
+  dateModified: entry.data.updated,
+  isAccessibleForFree: true,
+};
+---
+<Learn
+  title={`${entry.data.title} | techboost.dev`}
+  description={entry.data.description}
+  canonical={canonical}
+  jsonLd={jsonLd}
+>
+  <article class="prose-learn">
+    <h1 class="text-2xl sm:text-3xl font-bold tracking-tight mb-6">{entry.data.title}</h1>
+    <Content />
+  </article>
+</Learn>
