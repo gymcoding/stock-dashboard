@@ -13,13 +13,19 @@
     "notify:slack": "tsx --env-file-if-exists=.env scripts/send-slack.ts"
   },
   "dependencies": {
+    "@astrojs/mdx": "^5.0.6",
+    "@astrojs/sitemap": "^3.7.2",
     "@tailwindcss/vite": "^4.3.0",
     "astro": "^6.3.3",
     "cheerio": "^1.2.0",
+    "d3-scale": "^4.0.2",
+    "d3-shape": "^3.2.0",
     "tailwindcss": "^4.3.0",
     "yahoo-finance2": "^3.14.0"
   },
   "devDependencies": {
+    "@types/d3-scale": "^4.0.9",
+    "@types/d3-shape": "^3.1.8",
     "@types/node": "^25.8.0",
     "tsx": "^4.22.0",
     "typescript": "^5.9.3"
