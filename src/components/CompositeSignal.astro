@@ -1,0 +1,72 @@
+---
+import type { SignalKey } from '../lib/signal';
+import { signalBg, signalText } from '../lib/signal-style';
+
+interface BadgeItem {
+  name: string;
+  key: SignalKey;
+  text: string;
+  indicatorKey: string;
+}
+interface Props {
+  signalKey: SignalKey;
+  label: string;
+  comment: string;
+  good: number;
+  neutral: number;
+  warn: number;
+  bad: number;
+  badges: BadgeItem[];
+}
+const { signalKey, label, comment, good, neutral, warn, bad, badges } =
+  Astro.props;
+const overallCurrent = `긍정 ${good} · 중립 ${neutral} · 주의 ${warn} · 위험 ${bad} → ${label}`;
+---
+<section
+  class={`mb-8 border rounded-2xl p-6 cursor-pointer hover:bg-surface-hi transition ${signalBg[signalKey]}`}
+  data-indicator="overall"
+  data-current={overallCurrent}
+  data-sig={signalKey}
+  role="button"
+  tabindex="0"
+  aria-label="종합 신호 판단 근거 보기"
+>
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <div class="flex items-center gap-4 min-w-0">
+      <div class={`w-12 h-12 rounded-full shrink-0 border-2 flex items-center justify-center ${signalBg[signalKey]}`}>
+        <div class={`w-5 h-5 rounded-full ${signalText[signalKey]}`} style="background:currentColor"></div>
+      </div>
+      <div class="min-w-0">
+        <h2 class={`text-2xl font-bold ${signalText[signalKey]}`}>📊 {label}</h2>
+        <p class="text-text/90 mt-1 text-sm leading-relaxed">{comment}</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-4 gap-3 text-center shrink-0">
+      <div><div class="text-good font-bold text-lg">{good}</div><div class="text-muted text-[10px] mt-0.5">긍정</div></div>
+      <div><div class="text-muted font-bold text-lg">{neutral}</div><div class="text-muted text-[10px] mt-0.5">중립</div></div>
+      <div><div class="text-warn font-bold text-lg">{warn}</div><div class="text-muted text-[10px] mt-0.5">주의</div></div>
+      <div><div class="text-bad font-bold text-lg">{bad}</div><div class="text-muted text-[10px] mt-0.5">위험</div></div>
+    </div>
+  </div>
+
+  <div class="mt-5 pt-5 border-t border-border">
+    <div class="text-[10px] sm:text-xs text-muted uppercase tracking-widest mb-3">판단 근거 — 7개 컴포넌트</div>
+    <div class="flex flex-wrap gap-2">
+      {badges.map(b => (
+        <button
+          type="button"
+          class={`text-xs border rounded-full px-3 py-1 ${signalBg[b.key]} ${signalText[b.key]} font-semibold`}
+          data-indicator={b.indicatorKey}
+          data-current={`${b.name} · ${b.text}`}
+          data-sig={b.key}
+          aria-label={`${b.name} 상세 보기`}
+        >
+          {b.name}: {b.text}
+        </button>
+      ))}
+    </div>
+    <p class="text-[11px] sm:text-xs text-muted mt-3 leading-relaxed">
+      계산: 각 매수 +1·중립 0·주의 -1·위험 -2 합산 → 임계값 비교. 카드 빈 공간 클릭 시 방법론 상세.
+    </p>
+  </div>
+</section>
