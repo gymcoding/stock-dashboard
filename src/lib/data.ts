@@ -33,3 +33,15 @@ export type TickerAnalysis = {
   ma_cross: MaCross;
   pos_52w: number | null;
 };
+
+export type RatePoint = { date: string; value: number };
+
+export type RateSeriesId =
+  | 'dgs10'
+  | 'dgs3mo'
+  | 'yield_spread'
+  | 'hy_spread'
+  | 'usdkrw'
+  | 'fedfunds';
+
+export type RateHistory = Partial<Record<RateSeriesId, RatePoint[]>>;
