@@ -17,7 +17,7 @@ const canonical = new URL('/learn/', Astro.site).href;
   <ul class="grid gap-4">
     {entries.map(e => (
       <li>
-        <a href={`/learn/${e.id}`}
+        <a href={`/learn/${e.id}/`}
            class="block bg-surface/60 border border-border rounded-xl p-4 sm:p-5 hover:bg-surface-hi transition">
           <h2 class="text-base sm:text-lg font-bold text-text">{e.data.title}</h2>
           <p class="text-sm text-muted mt-1">{e.data.summary}</p>
