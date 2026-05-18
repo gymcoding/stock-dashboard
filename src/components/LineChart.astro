@@ -1,0 +1,44 @@
+---
+import { buildLineChart } from '../lib/line-chart';
+import type { RatePoint } from '../lib/data';
+
+interface Props {
+  points: RatePoint[];
+  unit?: string;
+  decimals?: number;
+}
+const { points, unit = '', decimals = 2 } = Astro.props;
+const fmt = (v: number) => `${v.toFixed(decimals)}${unit}`;
+const geom = buildLineChart(points, fmt);
+---
+{geom ? (
+  <svg viewBox={`0 0 ${geom.width} ${geom.height}`} role="img"
+       class="w-full h-auto" preserveAspectRatio="none">
+    {geom.yTicks.map(t => (
+      <>
+        <line x1="8" x2={geom.width - 56} y1={t.y} y2={t.y}
+              style="stroke: var(--c-border)" stroke-width="1" />
+        <text x={geom.width - 50} y={t.y + 4} font-size="12"
+              style="fill: var(--c-muted)">{t.label}</text>
+      </>
+    ))}
+    {geom.xTicks.map(t => (
+      <text x={t.x} y={geom.height - 8} font-size="12" text-anchor="middle"
+            style="fill: var(--c-muted)">{t.label}</text>
+    ))}
+    <path d={geom.pathD} fill="none" stroke-width="2"
+          stroke-linejoin="round" stroke-linecap="round"
+          style="stroke: var(--c-good)" />
+    {geom.last && (
+      <>
+        <circle cx={geom.last.x} cy={geom.last.y} r="3.5" style="fill: var(--c-good)" />
+        <text x={geom.last.x - 6} y={geom.last.y - 8} font-size="12"
+              text-anchor="end" font-weight="700" style="fill: var(--c-text)">
+          {geom.last.label}
+        </text>
+      </>
+    )}
+  </svg>
+) : (
+  <p class="text-sm text-muted py-8 text-center">데이터를 일시적으로 불러올 수 없어요.</p>
+)}

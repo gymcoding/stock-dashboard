@@ -1,0 +1,22 @@
+---
+import { loadHistory } from '../lib/history';
+import LineChart from './LineChart.astro';
+import type { RateSeriesId } from '../lib/data';
+
+const META: Record<RateSeriesId, { unit: string; decimals: number }> = {
+  dgs10:        { unit: '%',  decimals: 2 },
+  dgs3mo:       { unit: '%',  decimals: 2 },
+  yield_spread: { unit: '%p', decimals: 2 },
+  hy_spread:    { unit: '%p', decimals: 2 },
+  usdkrw:       { unit: '원', decimals: 2 },
+  fedfunds:     { unit: '%',  decimals: 2 },
+};
+
+interface Props { id: RateSeriesId; }
+const { id } = Astro.props;
+const points = loadHistory()[id] ?? [];
+const { unit, decimals } = META[id];
+---
+<figure class="my-6 bg-surface/60 border border-border rounded-xl p-3 sm:p-4">
+  <LineChart points={points} unit={unit} decimals={decimals} />
+</figure>
