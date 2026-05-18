@@ -29,8 +29,8 @@ export function buildLineChart(
     .domain([dates[0], dates[dates.length - 1]])
     .range([PAD.l, W - PAD.r]);
 
-  const minV = Math.min(...values);
-  const maxV = Math.max(...values);
+  const minV = values.reduce((a, b) => (b < a ? b : a), values[0]);
+  const maxV = values.reduce((a, b) => (b > a ? b : a), values[0]);
   const pad = (maxV - minV) * 0.08 || 1;
   const y = scaleLinear()
     .domain([minV - pad, maxV + pad])
