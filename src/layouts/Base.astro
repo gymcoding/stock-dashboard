@@ -4,14 +4,19 @@ import "../styles/global.css";
 export interface Props {
   title?: string;
   description?: string;
+  canonical?: string;
+  jsonLd?: Record<string, unknown>;
 }
 
 const {
   title = "투자 지표 대시보드 | techboost.dev",
   description = "S&P500·VIX·금리·환율 등 매크로 지표 일일 스냅샷. 매일 07:37 KST 자동 갱신.",
+  canonical,
+  jsonLd,
 } = Astro.props;
 
 const SITE_URL = 'https://techboost.dev';
+const canonicalUrl = canonical ?? SITE_URL;
 const ADSENSE_CLIENT = import.meta.env.PUBLIC_ADSENSE_CLIENT;  // 승인 후 .env에 설정
 const buildTime = new Date().toISOString();
 ---
@@ -32,13 +37,13 @@ const buildTime = new Date().toISOString();
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{title}</title>
   <meta name="description" content={description} />
-  <link rel="canonical" href={SITE_URL} />
+  <link rel="canonical" href={canonicalUrl} />
 
   <!-- OpenGraph (Slack/SNS 미리보기) -->
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content={SITE_URL} />
+  <meta property="og:url" content={canonicalUrl} />
   <meta property="og:locale" content="ko_KR" />
 
   <!-- 검색 허용 (AdSense 필수), AI 학습은 robots.txt로 차단 -->
@@ -61,6 +66,19 @@ const buildTime = new Date().toISOString();
 
   <meta name="generator" content="Astro" />
   <meta name="build-time" content={buildTime} />
+
+  {/* JSON-LD: set:html은 이 블록에서만 허용.
+      이유: <script type="application/ld+json"> 본문은 반드시 raw JSON이어야 하며,
+      Astro {expr} 자동 이스케이프를 사용하면 JSON이 깨짐.
+      jsonLd는 빌드 타임 상수(사용자 입력 없음)이고, .replace(/</g, '\\u003c')로
+      </script> 브레이크아웃을 방지하므로 XSS 위험 없음. */}
+  {jsonLd && (
+    <script
+      type="application/ld+json"
+      is:inline
+      set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')}
+    />
+  )}
 </head>
 <body>
   <slot />
