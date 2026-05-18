@@ -1,0 +1,14 @@
+---
+interface Props {
+  emoji: string;
+  title: string;
+  subtitle?: string;
+}
+const { emoji, title, subtitle } = Astro.props;
+---
+<h2 class="text-xs font-semibold text-muted uppercase tracking-widest mb-3">
+  <span aria-hidden="true">{emoji}</span> {title}
+  {subtitle && (
+    <span class="normal-case font-normal opacity-60">({subtitle})</span>
+  )}
+</h2>
