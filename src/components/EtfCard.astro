@@ -1,0 +1,97 @@
+---
+import type { SignalKey } from '../lib/signal';
+import { signalText } from '../lib/signal-style';
+
+interface Props {
+  ticker: string;
+  name: string;
+  priceStr: string;
+  changePct: number | null;
+  rsi: number | null;
+  rsiSignal: SignalKey;
+  rsiText: string;
+  ma200Above: boolean | null;
+  maDiffPct: number | null;
+  pos52w: number | null;
+  needleX: number;
+  needleY: number;
+}
+const {
+  ticker, name, priceStr, changePct, rsi, rsiSignal, rsiText,
+  ma200Above, maDiffPct, pos52w, needleX, needleY,
+} = Astro.props;
+
+const chg = changePct ?? 0;
+const chgStr = `${chg >= 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(2)}%`;
+const maArrow = (maDiffPct ?? 0) >= 0 ? '↑' : '↓';
+const maText =
+  ma200Above === null ? 'MA200 데이터 부족 (1년 미만)'
+  : ma200Above ? '상승추세' : '하락추세';
+const maSig: SignalKey =
+  ma200Above === null ? 'neutral' : ma200Above ? 'good' : 'bad';
+const rsiCurrent = `${name} · RSI ${rsi ?? '—'} · ${rsiText}`;
+const maCurrent =
+  ma200Above === null
+    ? `${name} · MA200 데이터 부족 (1년 미만)`
+    : `${name} · ${ma200Above ? '200일선 위' : '200일선 아래'} ${maArrow}${Math.abs(maDiffPct ?? 0).toFixed(1)}% · ${maText}`;
+const posCurrent = `${name} · 52주 저점에서 ${(pos52w ?? 50).toFixed(0)}% 위치`;
+---
+<article class="border border-border bg-surface rounded-2xl p-4 sm:p-5 flex flex-col gap-3">
+  <div class="flex items-start justify-between gap-2">
+    <div class="min-w-0">
+      <div class="font-semibold text-text truncate">{name}</div>
+      <div class="text-xs text-muted">{ticker}</div>
+    </div>
+    {changePct !== null && (
+      <span class={`text-xs rounded-full px-2 py-0.5 font-bold whitespace-nowrap shrink-0 ${chg >= 0 ? 'text-good bg-good/15' : 'text-bad bg-bad/15'}`}>
+        {chgStr}
+      </span>
+    )}
+  </div>
+  <div class="text-2xl font-bold text-text">{priceStr}</div>
+
+  <div class="border-t border-border pt-3 flex flex-col gap-2">
+    <div
+      class="flex items-center justify-between gap-2 text-xs cursor-pointer hover:bg-surface-hi rounded px-1 -mx-1 py-1 transition"
+      data-indicator="rsi" data-current={rsiCurrent} data-sig={rsiSignal}
+      role="button" tabindex="0" aria-label="RSI 설명"
+    >
+      <span class="text-muted min-w-0">
+        RSI <span class="font-mono font-bold">{rsi ?? '—'}</span>
+        <span class="text-muted/60 hidden sm:inline">(30↓매수·70↑주의)</span>
+      </span>
+      <span class={`${signalText[rsiSignal]} font-semibold whitespace-nowrap shrink-0`}>{rsiText}</span>
+    </div>
+
+    <div
+      class="flex items-center justify-between gap-2 text-xs cursor-pointer hover:bg-surface-hi rounded px-1 -mx-1 py-1 transition"
+      data-indicator="ma200" data-current={maCurrent} data-sig={maSig}
+      role="button" tabindex="0" aria-label="MA200 설명"
+    >
+      <span class="text-muted min-w-0">
+        MA200
+        {ma200Above !== null && (
+          <span class="font-mono">({maArrow}{Math.abs(maDiffPct ?? 0).toFixed(1)}%)</span>
+        )}
+      </span>
+      <span class={`${signalText[maSig]} font-semibold whitespace-nowrap shrink-0`}>{maText}</span>
+    </div>
+
+    {pos52w !== null && (
+      <div
+        class="mt-0.5 cursor-pointer hover:bg-surface-hi rounded px-1 -mx-1 py-1 transition"
+        data-indicator="52w" data-current={posCurrent} data-sig="neutral"
+        role="button" tabindex="0" aria-label="52주 위치 설명"
+      >
+        <svg viewBox="0 0 160 100" class="w-full">
+          <path d="M 25 85 A 55 55 0 0 1 135 85" fill="none" stroke="var(--color-border)" stroke-width="10" />
+          <line x1="80" y1="85" x2={needleX} y2={needleY} stroke="var(--color-brand)" stroke-width="3" stroke-linecap="round" />
+          <circle cx="80" cy="85" r="4" fill="var(--color-brand)" />
+          <text x="22" y="98" text-anchor="middle" font-size="9" fill="var(--color-muted)">저점</text>
+          <text x="80" y="98" text-anchor="middle" font-size="9" fill="var(--color-muted)">52주 {pos52w}%</text>
+          <text x="138" y="98" text-anchor="middle" font-size="9" fill="var(--color-muted)">고점</text>
+        </svg>
+      </div>
+    )}
+  </div>
+</article>
