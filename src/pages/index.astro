@@ -33,13 +33,17 @@ const fgScore = data.fear_greed?.score ?? null;
 const ysVal = data.yield_spread?.spread ?? null;
 const dxyAbove = data.dxy?.above_ma200 ?? null;
 
+const MA_CROSS_KR: Record<string, string> = {
+  strong_bull: '강한 상승추세', bull: '상승추세', bear: '약세 전환', strong_bear: '강한 하락추세',
+};
+
 const timingValues = [
   fgScore !== null ? `${fgScore} · ${data.fear_greed?.rating ?? ''}` : '—',
   fmtNumber(data.vix, 2),
   ysVal !== null ? `${ysVal >= 0 ? '+' : ''}${ysVal.toFixed(2)}` : '—',
   data.sp500_trend === null ? '—'
     : `${data.sp500_trend ? '200일선 위' : '200일선 아래'}${data.sp500_trend_pct !== null ? ` ${data.sp500_trend_pct >= 0 ? '↑' : '↓'}${Math.abs(data.sp500_trend_pct).toFixed(1)}%` : ''}`,
-  data.sp500_ma_cross ?? '—',
+  data.sp500_ma_cross ? (MA_CROSS_KR[data.sp500_ma_cross] ?? '—') : '—',
   fmtPercent(data.hy_spread, 2),
   dxyAbove === null ? '—' : dxyAbove ? '200일선 위 (강달러)' : '200일선 아래 (약달러)',
 ];
