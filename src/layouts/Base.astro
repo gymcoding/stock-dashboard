@@ -76,7 +76,7 @@ const buildTime = new Date().toISOString();
     <script
       type="application/ld+json"
       is:inline
-      set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')}
+      set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}
     />
   )}
 </head>
