@@ -1,0 +1,7 @@
+---
+// 마크다운 표(<table>) 치환. 모바일 가로 스크롤 래퍼. not-prose 미사용 → prose 표 스타일 유지.
+interface Props {}
+---
+<div class="overflow-x-auto my-6">
+  <table class="w-full text-sm"><slot /></table>
+</div>

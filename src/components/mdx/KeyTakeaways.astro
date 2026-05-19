@@ -1,0 +1,26 @@
+---
+interface Props {
+  title?: string;
+  items?: string[];
+}
+const { title = '핵심 요약', items } = Astro.props;
+---
+<div class="not-prose my-6 bg-surface/60 border border-border rounded-xl p-4 sm:p-5">
+  <p class="text-xs font-semibold text-muted uppercase tracking-widest mb-3">
+    <span aria-hidden="true">🎯</span> {title}
+  </p>
+  {items ? (
+    <ul class="space-y-2 text-sm sm:text-base text-text">
+      {items.map(i => (
+        <li class="flex gap-2">
+          <span class="text-brand shrink-0" aria-hidden="true">✓</span>
+          <span>{i}</span>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <div class="text-sm sm:text-base text-text [&_li]:mt-2 [&>*+*]:mt-2">
+      <slot />
+    </div>
+  )}
+</div>

@@ -1,0 +1,25 @@
+---
+import type { SignalKey } from '../../lib/signal';
+import { signalBg, signalText } from '../../lib/signal-style';
+
+interface Props {
+  type?: 'note' | 'tip' | 'warn' | 'danger';
+  title?: string;
+}
+const { type = 'note', title } = Astro.props;
+
+const MAP: Record<NonNullable<Props['type']>, { sig: SignalKey; emoji: string }> = {
+  note:   { sig: 'neutral', emoji: '📝' },
+  tip:    { sig: 'good',    emoji: '💡' },
+  warn:   { sig: 'warn',    emoji: '⚠️' },
+  danger: { sig: 'bad',     emoji: '🚨' },
+};
+const { sig, emoji } = MAP[type];
+---
+<aside class={`not-prose my-6 border rounded-xl p-4 sm:p-5 flex gap-3 ${signalBg[sig]}`}>
+  <span class="text-lg shrink-0" aria-hidden="true">{emoji}</span>
+  <div class="min-w-0 text-sm sm:text-base text-text leading-relaxed [&>*+*]:mt-2">
+    {title && <p class={`font-bold mb-1 ${signalText[sig]}`}>{title}</p>}
+    <slot />
+  </div>
+</aside>

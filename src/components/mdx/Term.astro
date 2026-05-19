@@ -1,0 +1,12 @@
+---
+// 인라인 용어 + 정의. title 속성 네이티브 툴팁(터치/키보드 한계 — v1 트레이드오프).
+interface Props {
+  def: string;
+  label?: string;
+}
+const { def, label } = Astro.props;
+---
+<span
+  class="not-prose underline decoration-dotted decoration-brand underline-offset-4 text-text cursor-help"
+  title={def}
+>{label ?? <slot />}</span>

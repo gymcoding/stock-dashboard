@@ -1,0 +1,17 @@
+---
+// Steps 내부에서 사용. 카드 + 장식 마커 + 제목 + 본문 slot.
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+---
+<li class="flex gap-3 bg-surface/60 border border-border rounded-xl p-4">
+  <span
+    class="shrink-0 w-7 h-7 rounded-full bg-brand/15 text-brand font-bold text-sm grid place-items-center"
+    aria-hidden="true"
+  >●</span>
+  <div class="min-w-0">
+    <p class="font-bold text-text mb-1">{title}</p>
+    <div class="text-sm text-muted [&>*+*]:mt-2"><slot /></div>
+  </div>
+</li>

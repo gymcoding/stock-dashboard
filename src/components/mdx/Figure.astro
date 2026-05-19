@@ -1,0 +1,19 @@
+---
+// 이미지/차트 + 캡션. RateChart.astro와 동일한 not-prose figure 패턴.
+interface Props {
+  src?: string;
+  alt?: string;
+  caption?: string;
+}
+const { src, alt = '', caption } = Astro.props;
+---
+<figure class="not-prose my-6 bg-surface/60 border border-border rounded-xl p-3 sm:p-4">
+  {src ? (
+    <img src={src} alt={alt} class="w-full h-auto rounded-lg" loading="lazy" decoding="async" />
+  ) : (
+    <slot />
+  )}
+  {caption && (
+    <figcaption class="mt-3 text-xs sm:text-sm text-muted text-center">{caption}</figcaption>
+  )}
+</figure>

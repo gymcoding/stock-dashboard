@@ -1,0 +1,16 @@
+---
+// Stat 카드 그리드. cols 클래스는 Tailwind v4가 인식하도록 완전 리터럴 문자열만 사용.
+interface Props {
+  cols?: 2 | 3 | 4;
+}
+const { cols = 3 } = Astro.props;
+
+const COLS: Record<NonNullable<Props['cols']>, string> = {
+  2: 'grid-cols-2',
+  3: 'grid-cols-2 sm:grid-cols-3',
+  4: 'grid-cols-2 lg:grid-cols-4',
+};
+---
+<div class={`not-prose my-6 grid gap-3 sm:gap-4 ${COLS[cols]}`}>
+  <slot />
+</div>

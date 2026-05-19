@@ -1,0 +1,160 @@
+---
+// 개발 전용 MDX 컴포넌트 카탈로그. 프로덕션 빌드에서는 라우트가 생성되지 않음.
+// (1) 빈 getStaticPaths(주 차단) (2) sitemap filter (3) robots.txt disallow (4) noindex meta
+import Base from '../../layouts/Base.astro';
+import ThemeToggleScript from '../../components/ThemeToggleScript.astro';
+import Callout from '../../components/mdx/Callout.astro';
+import Lead from '../../components/mdx/Lead.astro';
+import KeyTakeaways from '../../components/mdx/KeyTakeaways.astro';
+import Figure from '../../components/mdx/Figure.astro';
+import Stat from '../../components/mdx/Stat.astro';
+import StatGrid from '../../components/mdx/StatGrid.astro';
+import Steps from '../../components/mdx/Steps.astro';
+import Step from '../../components/mdx/Step.astro';
+import Compare from '../../components/mdx/Compare.astro';
+import Term from '../../components/mdx/Term.astro';
+import Anchor from '../../components/mdx/prose/Anchor.astro';
+import ImageEl from '../../components/mdx/prose/Image.astro';
+import TableEl from '../../components/mdx/prose/Table.astro';
+
+export function getStaticPaths() {
+  // prod build → 경로 0개 → dist/kitchen-sink 디렉터리 자체가 생성되지 않음
+  if (!import.meta.env.DEV) return [];
+  return [{ params: { path: undefined } }];
+}
+
+// 복붙용 MDX 소스 스니펫: frontmatter const 문자열 → {변수}로만 출력(Astro 자동 이스케이프).
+const importLine = `import { Callout, Lead, KeyTakeaways, Figure, Stat, StatGrid, Steps, Step, Compare, Term } from '../../components/mdx';`;
+
+const snippets: Record<string, string> = {
+  Callout: `<Callout type="tip" title="팁">\n  본문 — **마크다운** 사용 가능.\n</Callout>\n\n<Callout type="warn">제목 없는 주의.</Callout>`,
+  Lead: `<Lead>글 첫 문단을 크게 강조하는 도입부입니다.</Lead>`,
+  KeyTakeaways: `<KeyTakeaways items={["첫 번째 핵심", "두 번째 핵심"]} />\n\n{/* 또는 slot 사용 */}\n<KeyTakeaways title="이 글에서 배울 것">\n- 직접 작성한 리스트\n</KeyTakeaways>`,
+  Figure: `<Figure src="/img/chart.png" alt="차트 설명" caption="그림 1. 캡션" />\n\n<Figure caption="차트 래핑">\n  <RateChart id="dgs10" />\n</Figure>`,
+  StatGrid: `<StatGrid cols={3}>\n  <Stat label="10년물 금리" value="4.21%" signal="warn" sub="전일 +0.03" />\n  <Stat label="VIX" value="13.2" signal="good" />\n  <Stat label="원/달러" value="1,372" signal="neutral" />\n</StatGrid>`,
+  Steps: `<Steps title="투자 점검 순서">\n  <Step title="1. 종합 신호 확인">대시보드 상단 신호등.</Step>\n  <Step title="2. 금리 추이">장단기 금리차 점검.</Step>\n</Steps>`,
+  Compare: `<Compare mode="proscons">\n  <Fragment slot="left">\n  - 분산 효과\n  - 낮은 수수료\n  </Fragment>\n  <Fragment slot="right">\n  - 개별 종목 초과수익 없음\n  </Fragment>\n</Compare>`,
+  Term: `금리가 오르면 <Term def="채권 가격과 금리는 반대로 움직입니다.">채권</Term> 가격은 하락합니다.`,
+  RateChart: `<RateChart id="dgs10" />\n{/* id: dgs10 | dgs3mo | yield_spread | hy_spread | usdkrw | fedfunds */}`,
+  elements: `[외부 링크](https://example.com)  →  새 탭 + rel 안전 속성 자동\n![대체텍스트](/img/x.png)        →  lazy/반응형 img 자동\n| 헤더 | 값 |                     →  모바일 가로 스크롤 래퍼 자동\n| --- | --- |\n| a | 1 |`,
+};
+---
+<Base title="MDX Kitchen Sink (dev 전용)" description="MDX 컴포넌트 카탈로그 — 개발 전용" noindex={true}>
+  <main class="mx-auto max-w-screen-lg px-4 py-6 sm:py-10">
+    <div class="mb-8 flex items-start justify-between gap-4">
+      <a href="/" class="text-sm text-muted hover:text-text transition">← 대시보드</a>
+      <button id="theme-toggle" type="button" aria-label="다크/라이트 모드 전환"
+        class="shrink-0 rounded-full p-2 text-muted hover:text-text hover:bg-surface-hi transition">
+        <span class="dark-icon">☀️</span>
+        <span class="light-icon">🌙</span>
+      </button>
+    </div>
+
+    <h1 class="text-2xl sm:text-3xl font-bold tracking-tight mb-2">🧪 MDX Kitchen Sink</h1>
+    <p class="text-sm text-muted mb-2">
+      <code class="bg-surface px-1.5 py-0.5 rounded">npm run dev</code> 에서만 보이며 프로덕션 빌드에서 제외됩니다.
+      학습 글(<code class="bg-surface px-1.5 py-0.5 rounded">src/content/learn/*.mdx</code>) 작성 시 컴포넌트 레퍼런스로 사용하세요.
+    </p>
+    <div class="not-prose mb-10 border border-border rounded-lg p-3 bg-surface/60">
+      <p class="text-xs font-semibold text-muted uppercase tracking-widest mb-2">named 블록 import (한 줄, 필요한 것만)</p>
+      <pre class="bg-surface border border-border rounded-lg p-3 text-sm overflow-x-auto"><code>{importLine}</code></pre>
+    </div>
+
+    <section class="mb-12">
+      <h2 class="text-lg font-bold text-text mb-4 border-b border-border pb-1">Callout</h2>
+      <p class="text-sm text-muted mb-3">강조 박스. <code>type</code>: note(기본)·tip·warn·danger, <code>title?</code>.</p>
+      <Callout type="note" title="참고">기본 note 타입입니다.</Callout>
+      <Callout type="tip" title="팁">팁 — <strong>마크다운</strong> 사용 가능.</Callout>
+      <Callout type="warn">제목 없는 주의 타입.</Callout>
+      <Callout type="danger" title="경고">위험을 알릴 때.</Callout>
+      <pre class="bg-surface border border-border rounded-lg p-3 text-sm overflow-x-auto"><code>{snippets.Callout}</code></pre>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-lg font-bold text-text mb-4 border-b border-border pb-1">Lead</h2>
+      <p class="text-sm text-muted mb-3">도입 문단 강조. 인라인 콘텐츠 전용.</p>
+      <Lead>금리 하나로 주가·환율·경기를 읽는 법을 초보 눈높이로 풀어봅니다.</Lead>
+      <pre class="bg-surface border border-border rounded-lg p-3 text-sm overflow-x-auto"><code>{snippets.Lead}</code></pre>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-lg font-bold text-text mb-4 border-b border-border pb-1">KeyTakeaways</h2>
+      <p class="text-sm text-muted mb-3"><code>items: string[]</code> 또는 slot. <code>title?</code> 기본 "핵심 요약".</p>
+      <KeyTakeaways items={["금리와 채권 가격은 반대로 움직인다", "장단기 금리차 역전은 경기침체 선행 신호", "달러 강세는 신흥국 자금 유출 압력"]} />
+      <pre class="bg-surface border border-border rounded-lg p-3 text-sm overflow-x-auto"><code>{snippets.KeyTakeaways}</code></pre>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-lg font-bold text-text mb-4 border-b border-border pb-1">Figure</h2>
+      <p class="text-sm text-muted mb-3"><code>src</code>면 이미지, 없으면 slot(차트·표 래핑). <code>caption?</code>.</p>
+      <Figure caption="그림 예시 — slot 안에 임의 콘텐츠">
+        <div class="grid place-items-center h-32 bg-surface-hi rounded text-muted text-sm">차트/이미지 자리</div>
+      </Figure>
+      <pre class="bg-surface border border-border rounded-lg p-3 text-sm overflow-x-auto"><code>{snippets.Figure}</code></pre>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-lg font-bold text-text mb-4 border-b border-border pb-1">Stat / StatGrid</h2>
+      <p class="text-sm text-muted mb-3"><code>Stat</code>: label·value·signal?(good|neutral|warn|bad)·sub?. <code>StatGrid</code> cols?: 2|3|4.</p>
+      <StatGrid cols={3}>
+        <Stat label="10년물 금리" value="4.21%" signal="warn" sub="전일 +0.03" />
+        <Stat label="VIX" value="13.2" signal="good" />
+        <Stat label="원/달러" value="1,372" signal="neutral" />
+      </StatGrid>
+      <pre class="bg-surface border border-border rounded-lg p-3 text-sm overflow-x-auto"><code>{snippets.StatGrid}</code></pre>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-lg font-bold text-text mb-4 border-b border-border pb-1">Steps / Step</h2>
+      <p class="text-sm text-muted mb-3">순서 있는 단계. <code>Steps title?</code>, <code>Step title</code>(필수).</p>
+      <Steps title="투자 점검 순서">
+        <Step title="1. 종합 신호 확인">대시보드 상단 신호등을 본다.</Step>
+        <Step title="2. 금리 추이 점검">장단기 금리차 역전 여부 확인.</Step>
+        <Step title="3. 분산 점검">한 자산 비중이 과도하지 않은지.</Step>
+      </Steps>
+      <pre class="bg-surface border border-border rounded-lg p-3 text-sm overflow-x-auto"><code>{snippets.Steps}</code></pre>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-lg font-bold text-text mb-4 border-b border-border pb-1">Compare</h2>
+      <p class="text-sm text-muted mb-3"><code>mode</code>: split(기본)·proscons. <code>slot="left"</code>/<code>slot="right"</code>.</p>
+      <Compare mode="proscons">
+        <Fragment slot="left">
+          <ul class="list-disc pl-4"><li>분산 효과</li><li>낮은 수수료</li></ul>
+        </Fragment>
+        <Fragment slot="right">
+          <ul class="list-disc pl-4"><li>개별 종목 초과수익 없음</li></ul>
+        </Fragment>
+      </Compare>
+      <pre class="bg-surface border border-border rounded-lg p-3 text-sm overflow-x-auto"><code>{snippets.Compare}</code></pre>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-lg font-bold text-text mb-4 border-b border-border pb-1">Term</h2>
+      <p class="text-sm text-muted mb-3">인라인 용어 + <code>def</code> 툴팁(hover). 본문 흐름에 사용.</p>
+      <p class="text-text">금리가 오르면 <Term def="채권 가격과 시장 금리는 반대로 움직입니다.">채권</Term> 가격은 하락합니다.</p>
+      <pre class="bg-surface border border-border rounded-lg p-3 text-sm overflow-x-auto mt-3"><code>{snippets.Term}</code></pre>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-lg font-bold text-text mb-4 border-b border-border pb-1">RateChart (대시보드 데이터)</h2>
+      <p class="text-sm text-muted mb-3">기존 차트 컴포넌트. 배럴로 자동 export. 라이브 렌더는 history 데이터 필요라 스니펫만.</p>
+      <pre class="bg-surface border border-border rounded-lg p-3 text-sm overflow-x-auto"><code>{snippets.RateChart}</code></pre>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-lg font-bold text-text mb-4 border-b border-border pb-1">HTML 요소 자동 매핑 (import 불필요)</h2>
+      <p class="text-sm text-muted mb-3">
+        <code>[...slug].astro</code>의 element-map이 표준 마크다운을 자동 스타일합니다 — 작성자 조치 불필요.
+      </p>
+      <p class="text-text mb-2">링크 예: <Anchor href="https://example.com">외부 링크(새 탭)</Anchor> · <Anchor href="/learn/">내부 링크</Anchor></p>
+      <ImageEl src="https://placehold.co/600x160/png" alt="자동 스타일 이미지 예시" />
+      <TableEl>
+        <thead><tr><th class="text-left p-2 border-b border-border">지표</th><th class="text-left p-2 border-b border-border">값</th></tr></thead>
+        <tbody><tr><td class="p-2">10Y</td><td class="p-2">4.21%</td></tr></tbody>
+      </TableEl>
+      <pre class="bg-surface border border-border rounded-lg p-3 text-sm overflow-x-auto mt-3"><code>{snippets.elements}</code></pre>
+    </section>
+  </main>
+  <ThemeToggleScript />
+</Base>

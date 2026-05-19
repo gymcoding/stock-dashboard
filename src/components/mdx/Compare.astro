@@ -1,0 +1,39 @@
+---
+// 2단 비교. split=중립 비교, proscons=장점/단점.
+interface Props {
+  mode?: 'split' | 'proscons';
+  leftTitle?: string;
+  rightTitle?: string;
+}
+const { mode = 'split', leftTitle, rightTitle } = Astro.props;
+
+const isPC = mode === 'proscons';
+const lTitle = leftTitle ?? (isPC ? '장점' : '');
+const rTitle = rightTitle ?? (isPC ? '단점' : '');
+const lClass = isPC ? 'text-good' : 'text-muted';
+const rClass = isPC ? 'text-bad' : 'text-muted';
+const lMark = isPC ? '✓ ' : '';
+const rMark = isPC ? '✗ ' : '';
+---
+<div class="not-prose my-6 grid gap-3 sm:gap-4 sm:grid-cols-2">
+  <div class="bg-surface/60 border border-border rounded-xl p-4 sm:p-5">
+    {lTitle && (
+      <p class={`text-xs font-semibold uppercase tracking-widest mb-3 ${lClass}`}>
+        <span aria-hidden="true">{lMark}</span>{lTitle}
+      </p>
+    )}
+    <div class="text-sm sm:text-base text-text [&>*+*]:mt-2 [&_li]:mt-1">
+      <slot name="left" />
+    </div>
+  </div>
+  <div class="bg-surface/60 border border-border rounded-xl p-4 sm:p-5">
+    {rTitle && (
+      <p class={`text-xs font-semibold uppercase tracking-widest mb-3 ${rClass}`}>
+        <span aria-hidden="true">{rMark}</span>{rTitle}
+      </p>
+    )}
+    <div class="text-sm sm:text-base text-text [&>*+*]:mt-2 [&_li]:mt-1">
+      <slot name="right" />
+    </div>
+  </div>
+</div>

@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Learn from '../../layouts/Learn.astro';
+import { elementMap } from '../../components/mdx/element-map';
 
 export async function getStaticPaths() {
   const entries = await getCollection('learn');
@@ -29,6 +30,6 @@ const jsonLd = {
 >
   <article class="prose max-w-none">
     <h1 class="text-2xl sm:text-3xl font-bold tracking-tight mb-6">{entry.data.title}</h1>
-    <Content />
+    <Content components={elementMap} />
   </article>
 </Learn>

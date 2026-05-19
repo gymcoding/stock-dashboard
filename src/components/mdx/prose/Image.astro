@@ -1,0 +1,10 @@
+---
+// 마크다운 이미지(<img>) 치환. 마크다운 img는 <p> 안에 들어가므로 figure 래핑 금지(invalid HTML).
+// 캡션이 필요하면 작성자가 <Figure>를 명시 사용.
+interface Props {
+  src?: string;
+  alt?: string;
+}
+const { src, alt = '' } = Astro.props;
+---
+<img src={src} alt={alt} class="rounded-lg w-full h-auto" loading="lazy" decoding="async" />

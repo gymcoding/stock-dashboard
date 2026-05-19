@@ -1,0 +1,16 @@
+---
+// 마크다운 링크(<a>) 치환. 외부 링크는 안전 속성 + 접근성 표시. prose 링크색 유지(not-prose 미사용).
+interface Props {
+  href?: string;
+}
+const { href = '' } = Astro.props;
+
+const isExternal = /^https?:\/\//i.test(href) && !href.includes('techboost.dev');
+---
+{isExternal ? (
+  <a href={href} target="_blank" rel="noopener noreferrer">
+    <slot /><span class="sr-only"> (새 탭에서 열림)</span>
+  </a>
+) : (
+  <a href={href}><slot /></a>
+)}

@@ -6,6 +6,7 @@ export interface Props {
   description?: string;
   canonical?: string;
   jsonLd?: Record<string, unknown>;
+  noindex?: boolean;
 }
 
 const {
@@ -13,6 +14,7 @@ const {
   description = "S&P500·VIX·금리·환율 등 매크로 지표 일일 스냅샷. 매일 07:37 KST 자동 갱신.",
   canonical,
   jsonLd,
+  noindex = false,
 } = Astro.props;
 
 const SITE_URL = 'https://techboost.dev';
@@ -46,8 +48,8 @@ const buildTime = new Date().toISOString();
   <meta property="og:url" content={canonicalUrl} />
   <meta property="og:locale" content="ko_KR" />
 
-  <!-- 검색 허용 (AdSense 필수), AI 학습은 robots.txt로 차단 -->
-  <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large" />
+  <!-- 검색 허용 (AdSense 필수), AI 학습은 robots.txt로 차단. noindex=개발 전용 페이지 -->
+  <meta name="robots" content={noindex ? "noindex,nofollow" : "index,follow,max-snippet:-1,max-image-preview:large"} />
 
   <!-- Pretendard 가변 폰트 -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />

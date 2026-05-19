@@ -33,4 +33,8 @@ Disallow: /
 User-agent: anthropic-ai
 Disallow: /
 
+# 개발 전용 페이지 차단 (이름 없는 봇 대상 — named-agent 그룹은 RFC 9309상 독립)
+User-agent: *
+Disallow: /kitchen-sink
+
 Sitemap: https://techboost.dev/sitemap.xml
